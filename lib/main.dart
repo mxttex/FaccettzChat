@@ -45,7 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    //_loadMessages();
+    loadMessages();
   }
 
   @override
@@ -65,7 +65,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleSendPress(types.PartialText message) {
-    final textMessage = types.TextMessage(author: _user, id: const Uuid().v4(), text: message.text, createdAt: DateTime.now().microsecondsSinceEpoch);
+    final textMessage = types.TextMessage(
+        author: _user,
+        id: const Uuid().v4(),
+        text: message.text,
+        createdAt: DateTime.now().microsecondsSinceEpoch);
     addMessage(textMessage);
   }
 
@@ -80,9 +84,20 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void addMessage(types.Message message){
+  void addMessage(types.Message message) {
     setState(() {
       _messages.insert(0, message);
+    });
+  }
+
+  void loadMessages() async {
+    final response = await rootBundle.loadString('assets/messages.json');
+    final messages = (jsonDecode(response) as List)
+        .map((e) => types.Message.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    setState(() {
+      _messages = messages;
     });
   }
 }
