@@ -64,7 +64,25 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _handleSendPress(types.PartialText p1) {}
+  void _handleSendPress(types.PartialText message) {
+    final textMessage = types.TextMessage(author: _user, id: const Uuid().v4(), text: message.text, createdAt: DateTime.now().microsecondsSinceEpoch);
+    addMessage(textMessage);
+  }
 
-  void _handlePreviewDataFetched(types.TextMessage p1, types.PreviewData p2) {}
+  void _handlePreviewDataFetched(
+      types.TextMessage message, types.PreviewData previewData) {
+    final index = _messages.indexWhere((element) => element.id == message.id);
+    final updatedMessage = (_messages[index] as types.TextMessage)
+        .copyWith(previewData: previewData);
+
+    setState(() {
+      _messages[index] = updatedMessage;
+    });
+  }
+
+  void addMessage(types.Message message){
+    setState(() {
+      _messages.insert(0, message);
+    });
+  }
 }
