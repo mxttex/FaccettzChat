@@ -54,14 +54,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadUser() async {
-    final response = await rootBundle.loadString('assets/user.json');
-    _user = jsonDecode(response);
-    // final us = {
-    // "firstName": "Matteo",
-    // "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
-    // "lastName": "Faccetta"
-    // };
-    _user = types.User(id : _user['id']!);
+    // final response = await rootBundle.loadString('assets/user.json');
+    // final us = jsonDecode(response);
+    final us = {
+    "firstName": "Matteo",
+    "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
+    "lastName": "Faccetta"
+    };
+    _user = types.User(id : us['id']!);
   }
 
   Future<void> _loadFile() async {
