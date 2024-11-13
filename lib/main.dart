@@ -5,6 +5,9 @@ import 'package:uuid/uuid.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:cool_alert/cool_alert.dart';
 
 void main() {
   initializeDateFormatting().then(
@@ -22,9 +25,9 @@ class SimpleChat extends StatelessWidget {
     return MaterialApp(
       title: "Faccettz Chat",
       theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true),
-      home: const MyHomePage(title: 'chat'),
+      home: const MyHomePage(title: 'FACCETTZ CHAT'),
     );
   }
 }
@@ -40,17 +43,46 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<types.Message> _messages = [];
-  final _user = const types.User(id: 'aaaa');
-
+  dynamic _path;
+  dynamic _user;
+  File? _messagesFile = null;
   @override
   void initState() {
     super.initState();
-    loadMessages();
+    _loadUser();
+    _loadFile();
+  }
+
+  Future<void> _loadUser() async {
+    final response = await rootBundle.loadString('assets/user.json');
+    _user = jsonDecode(response);
+    // final us = {
+    // "firstName": "Matteo",
+    // "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
+    // "lastName": "Faccetta"
+    // };
+    _user = types.User(id : _user['id']!);
+  }
+
+  Future<void> _loadFile() async {
+    //await _loadUser();
+    _path = await _getFilePath();
+    _messagesFile = File(_path);
+    final exists = await _messagesFile!.exists();
+    if (exists) {
+      loadMessages();
+    } else {
+      _messagesFile!.create();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
       body: Chat(
         messages: _messages,
         onSendPressed: _handleSendPress,
@@ -69,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
         author: _user,
         id: const Uuid().v4(),
         text: message.text,
-        createdAt: DateTime.now().microsecondsSinceEpoch);
+        createdAt: DateTime.now().millisecondsSinceEpoch);
     addMessage(textMessage);
   }
 
@@ -88,10 +120,16 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _messages.insert(0, message);
     });
+    _fileWriter();
+  }
+
+  Future<void> _fileWriter() async {
+    final stringToEncode = jsonEncode(_messages);
+    await _messagesFile!.writeAsString(stringToEncode);
   }
 
   void loadMessages() async {
-    final response = await rootBundle.loadString('assets/messages.json');
+    final response = await _messagesFile!.readAsString();
     final messages = (jsonDecode(response) as List)
         .map((e) => types.Message.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -99,5 +137,23 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _messages = messages;
     });
+  }
+
+  Future<String> _getFilePath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/messages.json';
+  }
+
+  
+//per debug
+  void _showAlert(
+      BuildContext context, String title, String content, bool mode) {
+    CoolAlert.show(
+      context: context,
+      type: mode ? CoolAlertType.success : CoolAlertType.error,
+      title: title,
+      text: content,
+      loopAnimation: false,
+    );
   }
 }
