@@ -889,3 +889,5 @@ DerivedData/
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 @instance01
 instance01 commented on Jun 4, 2021
+
+node_modules

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:cool_alert/cool_alert.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   initializeDateFormatting().then(
@@ -57,11 +58,11 @@ class _MyHomePageState extends State<MyHomePage> {
     // final response = await rootBundle.loadString('assets/user.json');
     // final us = jsonDecode(response);
     final us = {
-    "firstName": "Matteo",
-    "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
-    "lastName": "Faccetta"
+      "firstName": "Matteo",
+      "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
+      "lastName": "Faccetta"
     };
-    _user = types.User(id : us['id']!);
+    _user = types.User(id: us['id']!);
   }
 
   Future<void> _loadFile() async {
@@ -102,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
         id: const Uuid().v4(),
         text: message.text,
         createdAt: DateTime.now().millisecondsSinceEpoch);
-    addMessage(textMessage);
+    addMessage(textMessage, true);
   }
 
   void _handlePreviewDataFetched(
@@ -116,11 +117,43 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void addMessage(types.Message message) {
+  void addMessage(types.Message message, mode) async {
     setState(() {
       _messages.insert(0, message);
     });
-    _fileWriter();
+    if (mode) {
+      final success = await _sendMessage();
+      if (success) {
+        _fileWriter();
+      } else {
+        setState(() {
+          if (mounted){
+            _showAlert(
+                context, "errore", "errore nell'invio del messaggio", false);
+                }
+          _messages.remove(_messages[0]);
+        });
+      }
+    }
+    else{
+      //TODO: cambio di id e inserimento del messaggio ricevuto dal back nel file 
+    }
+  }
+
+  Future<bool> _sendMessage() async {
+    const ip = "127.0.0.1";
+    const port = "3000";
+
+    final uri = Uri.parse("http://$ip:$port/send");
+    final response = await http.post(uri,
+        headers: {'Content-type': 'application/json'},
+        body: jsonEncode(_messages[0]));
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   Future<void> _fileWriter() async {
@@ -144,7 +177,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return '${directory.path}/messages.json';
   }
 
-  
 //per debug
   void _showAlert(
       BuildContext context, String title, String content, bool mode) {
