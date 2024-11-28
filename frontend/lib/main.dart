@@ -178,11 +178,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future<void> _listenForMessages() async{
-    while(mounted){
-
-    }
-  }
 
   Future<String> _getFilePath() async {
     final directory = await getApplicationDocumentsDirectory();
