@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
@@ -47,6 +49,8 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _path;
   dynamic _user;
   File? _messagesFile = null;
+  
+
   @override
   void initState() {
     super.initState();
@@ -55,14 +59,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadUser() async {
-    // final response = await rootBundle.loadString('assets/user.json');
-    // final us = jsonDecode(response);
-    final us = {
-      "firstName": "Matteo",
-      "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
-      "lastName": "Faccetta"
-    };
-    _user = types.User(id: us['id']!);
+    final response = await rootBundle.loadString('assets/user.json');
+    final us = jsonDecode(response);
+    // final us = {
+    //   "firstName": "Matteo",
+    //   "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
+    //   "lastName": "Faccetta"
+    // };
+    _user = types.User(id: us['id']!, firstName: us['firstName'], lastName: us['lastName']);
   }
 
   Future<void> _loadFile() async {
@@ -136,12 +140,14 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
     else{
-      //TODO: cambio di id e inserimento del messaggio ricevuto dal back nel file 
+      _fileWriter(); //penso vada già cosi
+      
     }
   }
 
   Future<bool> _sendMessage() async {
-    const ip = "127.0.0.1";
+    //IMP --> questi campi ci sara l'indirizzo in cui è hostato il container del servizio, prima di quello va cambiato ogni volta decido di far girare l'app
+    const ip = "192.168.0.124";
     const port = "3000";
 
     final uri = Uri.parse("http://$ip:$port/send");
@@ -171,6 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _messages = messages;
     });
   }
+
 
   Future<String> _getFilePath() async {
     final directory = await getApplicationDocumentsDirectory();
