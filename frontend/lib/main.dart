@@ -149,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //IMP --> questi campi ci sara l'indirizzo in cui è hostato il container del servizio, prima di quello va cambiato ogni volta decido di far girare l'app
     const ip = "192.168.0.124";
     const port = "3000";
-
+    const prova = "ciao";
     final uri = Uri.parse("http://$ip:$port/send");
     final response = await http.post(uri,
         headers: {'Content-type': 'application/json'},
