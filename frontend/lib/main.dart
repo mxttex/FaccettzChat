@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    socket = IO.io("http://192.168.135.83:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     //_loadUser();
@@ -72,8 +72,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     socket.on('message', (data) {
-      _streamController.add(data);
-      addMessage(types.TextMessage.fromJson(data), false);
+      final message = data;
+      final textMessage = types.TextMessage(
+        author: types.User.fromJson(message['author']),
+        id: message['id'],
+        text: message['text'],
+        createdAt: message['createdAt'],
+      );
+      // _streamController.add(data.toString());
+      addMessage(textMessage, false);
     });
   }
 
@@ -82,7 +89,8 @@ class _MyHomePageState extends State<MyHomePage> {
     // final us = jsonDecode(response);
     // _user = types.User(
     //     id: us['id']!, firstName: us['firstName'], lastName: us['lastName']);
-    _user = const types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
+    _user =
+        const types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
   }
 
   Future<void> _loadFile() async {
@@ -97,26 +105,22 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+    @override
+    Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Chat(
-              messages: _messages,
-              onSendPressed: _handleSendPress,
-              user: _user,
-              onPreviewDataFetched: _handlePreviewDataFetched,
-              showUserAvatars: true,
-              showUserNames: true,
-            ),
-          ),
-        ],
+      body: Chat(
+        messages: _messages,
+        onSendPressed: _handleSendPress,
+        user: _user,
+        onPreviewDataFetched: _handlePreviewDataFetched,
+        showUserAvatars: true,
+        showUserNames: true,
+        theme: const DefaultChatTheme(
+            seenIcon: Text('read', style: TextStyle(fontSize: 10.0))),
       ),
     );
   }
@@ -142,15 +146,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void addMessage(types.Message message, mode) async {
-    setState(() {
-      _messages.insert(0, message);
-    });
+    if (!_messages.any((msg) => msg.id == message.id)) {
+      setState(() {
+        _messages.insert(0, message);
+      });
+    }
 
     //se la modalità è true allora invia il messaggio
-    if(mode) _sendMessage(message);
+    if (mode) _sendMessage(message);
 
     await _fileWriter();
-    print(_messages[0]);
   }
 
   void _sendMessage(data) async {
