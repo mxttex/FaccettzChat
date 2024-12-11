@@ -73,15 +73,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
     socket.on('message', (data) {
       _streamController.add(data);
+      addMessage(types.TextMessage.fromJson(data), false);
     });
   }
 
   Future<void> _loadUser() async {
-    final response = await rootBundle.loadString('assets/user.json');
-    final us = jsonDecode(response);
+    // final response = await rootBundle.loadString('assets/user.json');
+    // final us = jsonDecode(response);
     // _user = types.User(
     //     id: us['id']!, firstName: us['firstName'], lastName: us['lastName']);
-    _user = types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
+    _user = const types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
   }
 
   Future<void> _loadFile() async {
@@ -105,23 +106,6 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          StreamBuilder<String>(
-            stream: messageStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                final receivedMessage = types.TextMessage(
-                  author: const types.User(id: "server", firstName: "Server"),
-                  id: const Uuid().v4(),
-                  text: snapshot.data!,
-                  createdAt: DateTime.now().millisecondsSinceEpoch,
-                );
-                _messages.insert(0, receivedMessage);
-              }
-
-              // Questo ritorno serve solo per evitare errori nel layout
-              return const SizedBox.shrink();
-            },
-          ),
           Expanded(
             child: Chat(
               messages: _messages,
@@ -162,9 +146,11 @@ class _MyHomePageState extends State<MyHomePage> {
       _messages.insert(0, message);
     });
 
-    _sendMessage(message);
+    //se la modalità è true allora invia il messaggio
+    if(mode) _sendMessage(message);
 
-    _fileWriter();
+    await _fileWriter();
+    print(_messages[0]);
   }
 
   void _sendMessage(data) async {
