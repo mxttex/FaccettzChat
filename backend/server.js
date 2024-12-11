@@ -12,9 +12,6 @@ const io = socketIo(server, {
     }
 })
 
-server.listen(PORT, '127.0.0.1', () => {
-    console.log("server in ascolto alla porta ", PORT)
-})
 io.on('connection', socket => {
     console.log("client connesso");
 
@@ -23,7 +20,12 @@ io.on('connection', socket => {
     })
 
     socket.on('sendMessage', (data) => {
-        console.log(`Messaggio inviato: ${data}`)
+        console.log(`Messaggio inviato: ${JSON.stringify(data)}`)
         io.emit('message', data)
     })
+})
+
+
+server.listen(PORT, '192.168.135.83', () => {
+    console.log("server in ascolto alla porta ", PORT)
 })

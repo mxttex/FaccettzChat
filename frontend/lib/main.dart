@@ -10,7 +10,7 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:cool_alert/cool_alert.dart';
-import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 void main() {
   initializeDateFormatting().then(
@@ -49,24 +49,39 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _path;
   dynamic _user;
   File? _messagesFile = null;
-  
+
+  late IO.Socket socket;
+  final StreamController<String> _streamController = StreamController<String>();
+  Stream<String> get messageStream => _streamController.stream;
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    socket = IO.io("http://192.168.135.83:3000", <String, dynamic>{
+      "transports": ['websocket']
+    });
+    //_loadUser();
+    _user =
+        const types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
     _loadFile();
+
+    socket.on('connect', (_) {
+      setState(() {
+        // errorMessage = "connesso al server";
+      });
+    });
+
+    socket.on('message', (data) {
+      _streamController.add(data);
+    });
   }
 
   Future<void> _loadUser() async {
     final response = await rootBundle.loadString('assets/user.json');
     final us = jsonDecode(response);
-    // final us = {
-    //   "firstName": "Matteo",
-    //   "id": "4e389063-181a-4be2-990b-c6285ac35dc1",
-    //   "lastName": "Faccetta"
-    // };
-    _user = types.User(id: us['id']!, firstName: us['firstName'], lastName: us['lastName']);
+    // _user = types.User(
+    //     id: us['id']!, firstName: us['firstName'], lastName: us['lastName']);
+    _user = types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
   }
 
   Future<void> _loadFile() async {
@@ -88,15 +103,36 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Chat(
-        messages: _messages,
-        onSendPressed: _handleSendPress,
-        user: _user,
-        onPreviewDataFetched: _handlePreviewDataFetched,
-        showUserAvatars: true,
-        showUserNames: true,
-        theme: const DefaultChatTheme(
-            seenIcon: Text('read', style: TextStyle(fontSize: 10.0))),
+      body: Column(
+        children: [
+          StreamBuilder<String>(
+            stream: messageStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final receivedMessage = types.TextMessage(
+                  author: const types.User(id: "server", firstName: "Server"),
+                  id: const Uuid().v4(),
+                  text: snapshot.data!,
+                  createdAt: DateTime.now().millisecondsSinceEpoch,
+                );
+                _messages.insert(0, receivedMessage);
+              }
+
+              // Questo ritorno serve solo per evitare errori nel layout
+              return const SizedBox.shrink();
+            },
+          ),
+          Expanded(
+            child: Chat(
+              messages: _messages,
+              onSendPressed: _handleSendPress,
+              user: _user,
+              onPreviewDataFetched: _handlePreviewDataFetched,
+              showUserAvatars: true,
+              showUserNames: true,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -125,40 +161,15 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _messages.insert(0, message);
     });
-    if (mode) {
-      final success = await _sendMessage();
-      if (success) {
-        _fileWriter();
-      } else {
-        setState(() {
-          if (mounted){
-            _showAlert(
-                context, "errore", "errore nell'invio del messaggio", false);
-                }
-          _messages.remove(_messages[0]);
-        });
-      }
-    }
-    else{
-      _fileWriter(); //penso vada già cosi
-      
-    }
+
+    _sendMessage(message);
+
+    _fileWriter();
   }
 
-  Future<bool> _sendMessage() async {
-    //IMP --> questi campi ci sara l'indirizzo in cui è hostato il container del servizio, prima di quello va cambiato ogni volta decido di far girare l'app
-    const ip = "192.168.0.124";
-    const port = "3000";
-    const prova = "ciao";
-    final uri = Uri.parse("http://$ip:$port/send");
-    final response = await http.post(uri,
-        headers: {'Content-type': 'application/json'},
-        body: jsonEncode(_messages[0]));
-
-    if (response.statusCode == 200) {
-      return true;
-    } else {
-      return false;
+  void _sendMessage(data) async {
+    if (socket.connected) {
+      socket.emit('sendMessage', data);
     }
   }
 
@@ -177,7 +188,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _messages = messages;
     });
   }
-
 
   Future<String> _getFilePath() async {
     final directory = await getApplicationDocumentsDirectory();
