@@ -80,8 +80,17 @@ class _MyHomePageState extends State<MyHomePage> {
         createdAt: message['createdAt'],
       );
       // _streamController.add(data.toString());
-      addMessage(textMessage, false);
+      setState(() {
+        addMessage(textMessage, false);
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    socket.disconnect();
+    _streamController.close();
   }
 
   Future<void> _loadUser() async {
@@ -105,8 +114,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-    @override
-    Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
