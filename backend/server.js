@@ -15,14 +15,24 @@ const io = socketIo(server, {
 io.on('connection', socket => {
     console.log("client connesso");
 
+    socket.join("room1")
     socket.on("disconnect", () => {
-        console.log("Client disconesso")
+        console.log("Client disconnesso")
     })
 
+    // socket.on('sendMessage', (data) => {
+    //     const mesg = JSON.stringify(data)
+    //     const sender = data.author
+    //     console.log(`Messaggio inviato: ${mesg}`)
+    //     socket.broadcast.emit('message', data)
+    //     console.log("Autore ", sender);
+    //     //socket.to(sender.id).emit('message', data); 
+    // })
     socket.on('sendMessage', (data) => {
-        console.log(`Messaggio inviato: ${JSON.stringify(data)}`)
-        io.emit('message', data)
-    })
+        console.log("Dati ricevuti:", data); // Debug
+        // socket.broadcast.emit('message', data);
+        io.emit('message', data);
+    });
 })
 
 
