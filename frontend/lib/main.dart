@@ -57,12 +57,12 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.230.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     //_loadUser();
     _user =
-        const types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
+        const types.User(id: "id", firstName: "Matteo"  , lastName: "Vagnini");
     _loadFile();
 
     socket.on('connect', (_) {
@@ -135,12 +135,21 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleSendPress(types.PartialText message) {
-    final textMessage = types.TextMessage(
-        author: _user,
-        id: const Uuid().v4(),
-        text: message.text,
-        createdAt: DateTime.now().millisecondsSinceEpoch);
-    addMessage(textMessage, true);
+    if (socket.connected) {
+      if (message.text.startsWith("/room")) {
+        //mi connetto alla stanza
+        socket.emit("join-room",
+            message.text.substring(5)); //cosi escludo /room dalla stringa
+      } else {
+        //invio il messaggio come al solito
+        final textMessage = types.TextMessage(
+            author: _user,
+            id: const Uuid().v4(),
+            text: message.text,
+            createdAt: DateTime.now().millisecondsSinceEpoch);
+        addMessage(textMessage, true);
+      }
+    }
   }
 
   void _handlePreviewDataFetched(
@@ -155,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void addMessage(types.Message message, mode) async {
-    if (!_messages.any((msg) => msg.id == message.id)) {
+    if (!_messages.any((msg) => msg.id == message.id) || (true == true)) {
       setState(() {
         _messages.insert(0, message);
       });
