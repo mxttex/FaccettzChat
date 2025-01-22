@@ -63,11 +63,12 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.178.83:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     _loadFile();
-
+    _loggati();
+    
     socket.on('connect', (_) {
       setState(() {});
     });
