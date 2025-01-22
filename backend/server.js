@@ -28,19 +28,20 @@ io.on('connection', socket => {
 
 
     socket.on('sendMessage', (data) => {
-        switch(currentRoom){
-            case ""  || "broadcast":
-                io.emit("message", data) //mando in broadcast
-                break;
-            default:
-                //invio il messaggio nella stanza in cui siamo connessi
-                io.to(currentRoom).emit("message", data) 
-        }   
+        // switch(currentRoom){
+        //     case "broadcast":
+        //         io.broadcast.emit("message", data) //mando in broadcast
+        //         break;
+        //     default:
+        //         //invio il messaggio nella stanza in cui siamo connessi
+        //         io.to(currentRoom).emit("message", data) 
+        // }   
+        io.to(currentRoom).emit("message", data)
     })
 
 })
 
 
-server.listen(PORT, '192.168.178.83', () => {
+server.listen(PORT, '192.168.0.124', () => {
     console.log("server in ascolto alla porta ", PORT)
 })
