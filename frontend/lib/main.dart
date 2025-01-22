@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
@@ -11,12 +10,17 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:cool_alert/cool_alert.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   initializeDateFormatting().then(
-    (_) => runApp(
-      const SimpleChat(),
-    ),
+    (_) => runApp(const SimpleChat()),
   );
 }
 
@@ -49,6 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _path;
   dynamic _user;
   File? _messagesFile = null;
+  bool logged = false;
 
   late IO.Socket socket;
   final StreamController<String> _streamController = StreamController<String>();
@@ -57,18 +62,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    socket = IO.io("http://192.168.230.83:3000", <String, dynamic>{
+
+    socket = IO.io("http://192.168.178.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
-    //_loadUser();
-    _user =
-        const types.User(id: "id", firstName: "Matteo"  , lastName: "Vagnini");
     _loadFile();
 
     socket.on('connect', (_) {
-      setState(() {
-        // errorMessage = "connesso al server";
-      });
+      setState(() {});
     });
 
     socket.on('message', (data) {
@@ -79,7 +80,6 @@ class _MyHomePageState extends State<MyHomePage> {
         text: message['text'],
         createdAt: message['createdAt'],
       );
-      // _streamController.add(data.toString());
       setState(() {
         addMessage(textMessage, false);
       });
@@ -93,17 +93,51 @@ class _MyHomePageState extends State<MyHomePage> {
     _streamController.close();
   }
 
-  Future<void> _loadUser() async {
-    // final response = await rootBundle.loadString('assets/user.json');
-    // final us = jsonDecode(response);
-    // _user = types.User(
-    //     id: us['id']!, firstName: us['firstName'], lastName: us['lastName']);
-    _user =
-        const types.User(id: "id", firstName: "Matteo", lastName: "Faccetta");
+  void _assignUser(User user) {
+    _user = types.User(id: user.uid, firstName: user.displayName);
+  }
+
+  Future<void> _loggati() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+        User? user = userCredential.user;
+        if (user != null) {
+          setState(() {
+            _assignUser(user);
+            logged = true;
+            socket.emit("connect");
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        if (mounted) {
+          _showAlert(context, "errore", e.toString(), false);
+        }
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      await GoogleSignIn().signOut();
+      setState(() {
+        _user = null;
+        logged = false;
+      });
+    } catch (e) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadFile() async {
-    //await _loadUser();
     _path = await _getFilePath();
     _messagesFile = File(_path);
     final exists = await _messagesFile!.exists();
@@ -121,27 +155,29 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Chat(
-        messages: _messages,
-        onSendPressed: _handleSendPress,
-        user: _user,
-        onPreviewDataFetched: _handlePreviewDataFetched,
-        showUserAvatars: true,
-        showUserNames: true,
-        theme: const DefaultChatTheme(
-            seenIcon: Text('read', style: TextStyle(fontSize: 10.0))),
-      ),
+      body: logged
+          ? Chat(
+              messages: _messages,
+              onSendPressed: _handleSendPress,
+              user: _user,
+              onPreviewDataFetched: _handlePreviewDataFetched,
+              showUserAvatars: true,
+              showUserNames: true,
+              theme: const DefaultChatTheme(
+                  seenIcon: Text('read', style: TextStyle(fontSize: 10.0))),
+            )
+          : Center(
+              child: Column(children: <Widget>[
+              SignInButton(Buttons.Google, onPressed: _loggati),
+            ])),
     );
   }
 
   void _handleSendPress(types.PartialText message) {
     if (socket.connected) {
       if (message.text.startsWith("/room")) {
-        //mi connetto alla stanza
-        socket.emit("join-room",
-            message.text.substring(5)); //cosi escludo /room dalla stringa
+        socket.emit("join-room", message.text.substring(5));
       } else {
-        //invio il messaggio come al solito
         final textMessage = types.TextMessage(
             author: _user,
             id: const Uuid().v4(),
@@ -164,15 +200,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void addMessage(types.Message message, mode) async {
-    if (!_messages.any((msg) => msg.id == message.id) || (true == true)) {
+    if (!_messages.any((msg) => msg.id == message.id)) {
       setState(() {
         _messages.insert(0, message);
       });
     }
 
-    //se la modalità è true allora invia il messaggio
     if (mode) _sendMessage(message);
-
     await _fileWriter();
   }
 
@@ -203,7 +237,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return '${directory.path}/messages.json';
   }
 
-//per debug
   void _showAlert(
       BuildContext context, String title, String content, bool mode) {
     CoolAlert.show(

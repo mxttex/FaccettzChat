@@ -15,27 +15,32 @@ const io = socketIo(server, {
 io.on('connection', socket => {
     console.log("client connesso");
 
-    socket.join("room1")
+    var currentRoom = "";
     socket.on("disconnect", () => {
         console.log("Client disconnesso")
     })
+    socket.on('join-room', room => {
+        socket.leave(currentRoom);
+        socket.join(room);
+        console.log(`Connesso alla stanza ${room}.`)
+        currentRoom = room;
+    })
 
-    // socket.on('sendMessage', (data) => {
-    //     const mesg = JSON.stringify(data)
-    //     const sender = data.author
-    //     console.log(`Messaggio inviato: ${mesg}`)
-    //     socket.broadcast.emit('message', data)
-    //     console.log("Autore ", sender);
-    //     //socket.to(sender.id).emit('message', data); 
-    // })
+
     socket.on('sendMessage', (data) => {
-        console.log("Dati ricevuti:", data); // Debug
-        // socket.broadcast.emit('message', data);
-        io.emit('message', data);
-    });
+        switch(currentRoom){
+            case ""  || "broadcast":
+                io.emit("message", data) //mando in broadcast
+                break;
+            default:
+                //invio il messaggio nella stanza in cui siamo connessi
+                io.to(currentRoom).emit("message", data) 
+        }   
+    })
+
 })
 
 
-server.listen(PORT, '192.168.0.124', () => {
+server.listen(PORT, '192.168.178.83', () => {
     console.log("server in ascolto alla porta ", PORT)
 })
