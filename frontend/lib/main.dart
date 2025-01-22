@@ -68,11 +68,11 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     _loadFile();
     _loggati();
-    
+
     socket.on('connect', (_) {
       setState(() {});
     });
-          socket.emit("join-room", "broadcast");
+    socket.emit("join-room", "broadcast");
 
     socket.on('message', (data) {
       final message = data;
@@ -114,7 +114,6 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             _assignUser(user);
             logged = true;
-            socket.emit("connect");
           });
         }
       }
@@ -179,12 +178,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (socket.connected) {
       if (message.text.startsWith("/room")) {
         socket.emit("join-room", message.text.substring(5));
-      } else if(message.text.startsWith("/logout"))
-      {
+      } else if (message.text.startsWith("/logout")) {
         _logout();
-      }
-      else
-      {
+      } else {
         final textMessage = types.TextMessage(
             author: _user,
             id: const Uuid().v4(),
