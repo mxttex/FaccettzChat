@@ -72,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
     socket.on('connect', (_) {
       setState(() {});
     });
+          socket.emit("join-room", "broadcast");
 
     socket.on('message', (data) {
       final message = data;
