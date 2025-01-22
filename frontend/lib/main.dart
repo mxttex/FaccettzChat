@@ -178,7 +178,12 @@ class _MyHomePageState extends State<MyHomePage> {
     if (socket.connected) {
       if (message.text.startsWith("/room")) {
         socket.emit("join-room", message.text.substring(5));
-      } else {
+      } else if(message.text.startsWith("/logout"))
+      {
+        _logout();
+      }
+      else
+      {
         final textMessage = types.TextMessage(
             author: _user,
             id: const Uuid().v4(),
