@@ -63,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.156.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     _loadFile();
@@ -134,7 +134,9 @@ class _MyHomePageState extends State<MyHomePage> {
         logged = false;
       });
     } catch (e) {
-      setState(() {});
+      setState(() {
+        _showAlert(context, "title", e.toString(), false);
+      });
     }
   }
 
@@ -175,11 +177,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleSendPress(types.PartialText message) {
-    if (socket.connected) {
+    if (message.text == "/logout") {
+      _logout();
+    } else if (socket.connected) {
       if (message.text.startsWith("/room")) {
         socket.emit("join-room", message.text.substring(5));
-      } else if (message.text.startsWith("/logout")) {
-        _logout();
       } else {
         final textMessage = types.TextMessage(
             author: _user,
