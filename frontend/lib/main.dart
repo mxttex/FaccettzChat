@@ -24,6 +24,8 @@ void main() async {
   );
 }
 
+enum States { login, menu, inChat }
+
 class SimpleChat extends StatelessWidget {
   const SimpleChat({super.key});
 
@@ -53,8 +55,8 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _path;
   dynamic _user;
   File? _messagesFile = null;
+  States _status = States.login;
   bool logged = false;
-
   late IO.Socket socket;
   final StreamController<String> _streamController = StreamController<String>();
   Stream<String> get messageStream => _streamController.stream;
@@ -63,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.156.83:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.121.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     _loadFile();
@@ -113,14 +115,14 @@ class _MyHomePageState extends State<MyHomePage> {
         if (user != null) {
           setState(() {
             _assignUser(user);
-            logged = true;
+            _status = States.inChat;
           });
         }
       }
     } catch (e) {
       setState(() {
         if (mounted) {
-          _showAlert(context, "errore", e.toString(), false);
+          _showAlert(context, "Errore", e.toString(), false);
         }
       });
     }
@@ -135,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     } catch (e) {
       setState(() {
-        _showAlert(context, "title", e.toString(), false);
+        _showAlert(context, "Errore", e.toString(), false);
       });
     }
   }
@@ -151,6 +153,34 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Widget _buildBody() {
+    switch (_status) {
+      case States.login:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            SignInButton(Buttons.Google, onPressed: _loggati),
+          ],
+        );
+      case States.menu:
+        return Center(
+          child: Text(
+            "Benvenuto, ${_user?.firstName ?? ''}",
+            style: const TextStyle(fontSize: 20),
+          ),
+        );
+      case States.inChat:
+        return Chat(
+          messages: _messages,
+          onSendPressed: _handleSendPress,
+          user: _user,
+          onPreviewDataFetched: _handlePreviewDataFetched,
+          showUserAvatars: true,
+          showUserNames: true,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,21 +188,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: logged
-          ? Chat(
-              messages: _messages,
-              onSendPressed: _handleSendPress,
-              user: _user,
-              onPreviewDataFetched: _handlePreviewDataFetched,
-              showUserAvatars: true,
-              showUserNames: true,
-              theme: const DefaultChatTheme(
-                  seenIcon: Text('read', style: TextStyle(fontSize: 10.0))),
-            )
-          : Center(
-              child: Column(children: <Widget>[
-              SignInButton(Buttons.Google, onPressed: _loggati),
-            ])),
+      body: _buildBody(),
     );
   }
 
