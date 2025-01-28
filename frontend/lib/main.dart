@@ -171,7 +171,9 @@ class _MyHomePageState extends State<MyHomePage> {
               final message = _messages[index] as types.TextMessage;
 
               return GestureDetector(
-                onTap: () => {_state = States.inChat},
+                onTap: () {setState(() {
+                  _state = States.inChat;
+                });},
                 child: Column(
                   children: [
                     Row(
