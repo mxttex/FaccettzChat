@@ -163,58 +163,63 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         );
       case States.menu:
-  return Center(
-    child: ListView.builder(
-      padding: const EdgeInsets.only(left: 25),
-      itemCount: _messages.length,
-      itemBuilder: (context, index) {
-        final message = _messages[index] as types.TextMessage;
+        return Center(
+          child: ListView.builder(
+            padding: const EdgeInsets.only(left: 25),
+            itemCount: _messages.length,
+            itemBuilder: (context, index) {
+              final message = _messages[index] as types.TextMessage;
 
-        return Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+              return GestureDetector(
+                onTap: () => {_status = States.inChat},
+                child: Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(width: 50),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              message.author.firstName ?? "Unknown",
-                              style: const TextStyle(color: Colors.black),
+                            Row(
+                              children: [
+                                const SizedBox(width: 50),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      message.author.firstName ?? "Unknown",
+                                      style:
+                                          const TextStyle(color: Colors.black),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      message.text,
+                                      style:
+                                          const TextStyle(color: Colors.black),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 5),
-                            Text(
-                              message.text,
-                              style: const TextStyle(color: Colors.black),
+                            Column(
+                              children: [
+                                Text(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                          message.createdAt ?? 0)
+                                      .toString(),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ],
                     ),
-                    Column(
-                      children: [
-                        Text(
-                          DateTime.fromMillisecondsSinceEpoch(
-                                  message.createdAt ?? 0)
-                              .toString(),
-                        ),
-                      ],
-                    ),
+                    const Divider(indent: 75),
                   ],
                 ),
-              ],
-            ),
-            const Divider(indent: 75),
-          ],
+              );
+            },
+          ),
         );
-      },
-    ),
-  );
 
       case States.inChat:
         return Chat(
@@ -317,28 +322,25 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class UserAvatar extends StatelessWidget{
+class UserAvatar extends StatelessWidget {
   final String imageUrl;
   final double radius;
 
-  const UserAvatar({
-    super.key,
-    required this.imageUrl,
-    this.radius = 32
-  });
+  const UserAvatar({super.key, required this.imageUrl, this.radius = 32});
 
-@override
+  @override
+
+//codice generato da AI, molto probabilmente da sistemare
   Widget build(BuildContext context) {
     return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.white, // Bordo bianco attorno all'immagine
-      child: CircleAvatar(
-        radius: radius - 3, // Ridotto per il bordo
-        backgroundImage: imageUrl.startsWith('http')
-            ? NetworkImage(imageUrl) // Se è un URL, carica da internet
-            : AssetImage('assets/images/$imageUrl') as ImageProvider, // Altrimenti, carica da assets
-        onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30), // Icona di fallback
-      ),
-    );
+        radius: radius,
+        backgroundColor: Colors.white, // Bordo bianco attorno all'immagine
+        child: CircleAvatar(
+          radius: radius - 3, // Ridotto per il bordo
+          backgroundImage: imageUrl.startsWith('http')
+              ? NetworkImage(imageUrl) // Se è un URL, carica da internet
+              : AssetImage('assets/images/$imageUrl') as ImageProvider,
+          onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30),
+        ));
   }
 }
