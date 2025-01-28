@@ -316,3 +316,29 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+class UserAvatar extends StatelessWidget{
+  final String imageUrl;
+  final double radius;
+
+  const UserAvatar({
+    super.key,
+    required this.imageUrl,
+    this.radius = 32
+  });
+
+@override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.white, // Bordo bianco attorno all'immagine
+      child: CircleAvatar(
+        radius: radius - 3, // Ridotto per il bordo
+        backgroundImage: imageUrl.startsWith('http')
+            ? NetworkImage(imageUrl) // Se è un URL, carica da internet
+            : AssetImage('assets/images/$imageUrl') as ImageProvider, // Altrimenti, carica da assets
+        onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30), // Icona di fallback
+      ),
+    );
+  }
+}
