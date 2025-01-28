@@ -199,7 +199,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     Column(
                       children: [
                         Text(
-                          DateTime.fromMicrosecondsSinceEpoch(
+                          DateTime.fromMillisecondsSinceEpoch(
                                   message.createdAt ?? 0)
                               .toString(),
                         ),
