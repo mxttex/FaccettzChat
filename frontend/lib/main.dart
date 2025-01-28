@@ -55,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _path;
   dynamic _user;
   File? _messagesFile = null;
-  States _status = States.login;
+  States _state = States.login;
   bool logged = false;
   late IO.Socket socket;
   final StreamController<String> _streamController = StreamController<String>();
@@ -115,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (user != null) {
           setState(() {
             _assignUser(user);
-            _status = States.inChat;
+            _state = States.menu;
           });
         }
       }
@@ -154,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildBody() {
-    switch (_status) {
+    switch (_state) {
       case States.login:
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -171,7 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
               final message = _messages[index] as types.TextMessage;
 
               return GestureDetector(
-                onTap: () => {_status = States.inChat},
+                onTap: () => {_state = States.inChat},
                 child: Column(
                   children: [
                     Row(
