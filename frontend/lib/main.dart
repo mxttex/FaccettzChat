@@ -163,12 +163,59 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         );
       case States.menu:
-        return Center(
-          child: Text(
-            "Benvenuto, ${_user?.firstName ?? ''}",
-            style: const TextStyle(fontSize: 20),
-          ),
+  return Center(
+    child: ListView.builder(
+      padding: const EdgeInsets.only(left: 25),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[index] as types.TextMessage;
+
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(width: 50),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              message.author.firstName ?? "Unknown",
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              message.text,
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          DateTime.fromMicrosecondsSinceEpoch(
+                                  message.createdAt ?? 0)
+                              .toString(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(indent: 75),
+          ],
         );
+      },
+    ),
+  );
+
       case States.inChat:
         return Chat(
           messages: _messages,
