@@ -56,6 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _path;
   dynamic _user;
   File? _messagesFile = null;
+  dynamic _preview = [];
   States _state = States.login;
   bool logged = false;
   late IO.Socket socket;
@@ -100,7 +101,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _assignUser(User user) {
-    _user = types.User(id: user.uid, firstName: user.displayName, imageUrl: user.photoURL);
+    _user = types.User(
+        id: user.uid, firstName: user.displayName, imageUrl: user.photoURL);
   }
 
   Future<void> _loggati() async {
@@ -168,9 +170,9 @@ class _MyHomePageState extends State<MyHomePage> {
         return Center(
           child: ListView.builder(
             padding: const EdgeInsets.only(left: 5),
-            itemCount: _messages.length,
+            itemCount: _preview.length,
             itemBuilder: (context, index) {
-              final message = _messages[index] as types.TextMessage;
+              final message = _preview[index] as types.TextMessage;
 
               return GestureDetector(
                 onTap: () {
@@ -188,7 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      UserAvatar(imageUrl: _user.imageUrl ?? ""),
+                      UserAvatar(imageUrl: message.author.imageUrl ?? ""),
                       const SizedBox(width: 10),
 
                       Expanded(
@@ -289,6 +291,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (mode) _sendMessage(message);
     await _fileWriter();
+    _createPreview();
   }
 
   void _sendMessage(data) async {
@@ -310,6 +313,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _messages = messages;
+      _preview = _createPreview();
     });
   }
 
@@ -341,6 +345,21 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       return "unknown";
     }
+  }
+
+  dynamic _createPreview() {
+    dynamic prev = {};
+
+    for (int i = 0; i < _messages.length; i++) {
+      final message = _messages[i];
+      if (!_messages.any((msg) => msg.author.id == message.author.id)) {
+        setState(() {
+          prev.insert(0, message);
+        });
+      }
+    }
+    print("I messaggi in preview sono: \n" + prev.toString());
+    return prev;
   }
 }
 
