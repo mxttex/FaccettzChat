@@ -69,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
     socket = IO.io("http://192.168.107.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
+
     _loadFile();
     _loggati();
 
@@ -99,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _assignUser(User user) {
-    _user = types.User(id: user.uid, firstName: user.displayName);
+    _user = types.User(id: user.uid, firstName: user.displayName, imageUrl: user.photoURL);
   }
 
   Future<void> _loggati() async {
@@ -166,7 +167,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case States.menu:
         return Center(
           child: ListView.builder(
-            padding: const EdgeInsets.only(left: 25),
+            padding: const EdgeInsets.only(left: 5),
             itemCount: _messages.length,
             itemBuilder: (context, index) {
               final message = _messages[index] as types.TextMessage;
@@ -181,46 +182,47 @@ class _MyHomePageState extends State<MyHomePage> {
                     }
                   });
                 },
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      UserAvatar(imageUrl: _user.imageUrl ?? ""),
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                const SizedBox(width: 50),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      message.author.firstName ?? "Unknown",
-                                      style: const TextStyle(
-                                          color: Colors.black, fontSize: 20),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      message.text,
-                                      style:
-                                          const TextStyle(color: Colors.black),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(_showDate(message.createdAt)),
-                                  ],
-                                ),
-                              ],
+                            // Nome dell'autore
+                            Text(
+                              message.author.firstName ?? "Unknown",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+
+                            Text(
+                              message.text,
+                              style: const TextStyle(
+                                  color: Colors.black, fontSize: 14),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const Divider(indent: 75),
-                  ],
+                      ),
+
+                      // Data del messaggio
+                      Text(
+                        _showDate(message.createdAt),
+                        style:
+                            const TextStyle(color: Colors.black, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
