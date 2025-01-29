@@ -67,7 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.107.83:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
       "transports": ['websocket']
     });
 
@@ -286,12 +286,12 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!_messages.any((msg) => msg.id == message.id)) {
       setState(() {
         _messages.insert(0, message);
+        _createPreview();
       });
     }
 
     if (mode) _sendMessage(message);
     await _fileWriter();
-    _createPreview();
   }
 
   void _sendMessage(data) async {
@@ -348,17 +348,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   dynamic _createPreview() {
-    dynamic prev = {};
+    dynamic prev = [];
 
     for (int i = 0; i < _messages.length; i++) {
       final message = _messages[i];
-      if (!_messages.any((msg) => msg.author.id == message.author.id)) {
+      if (message.author.id != _user.id && !prev.any((msg) => msg.author.id == message.author.id)) {
         setState(() {
           prev.insert(0, message);
         });
       }
     }
-    print("I messaggi in preview sono: \n" + prev.toString());
+    if (prev == []) {
+      _state = States.inChat;
+    }
     return prev;
   }
 }
