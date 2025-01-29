@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:uuid/uuid.dart';
@@ -65,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.0.187:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.107.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     _loadFile();
@@ -171,9 +172,15 @@ class _MyHomePageState extends State<MyHomePage> {
               final message = _messages[index] as types.TextMessage;
 
               return GestureDetector(
-                onTap: () {setState(() {
-                  _state = States.inChat;
-                });},
+                onTap: () {
+                  setState(() {
+                    try {
+                      _state = States.inChat;
+                    } catch (e) {
+                      _showAlert(context, "title", e.toString(), false);
+                    }
+                  });
+                },
                 child: Column(
                   children: [
                     Row(
@@ -189,8 +196,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   children: [
                                     Text(
                                       message.author.firstName ?? "Unknown",
-                                      style:
-                                          const TextStyle(color: Colors.black),
+                                      style: const TextStyle(
+                                          color: Colors.black, fontSize: 20),
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
@@ -200,14 +207,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                            Column(
-                              children: [
-                                Text(
-                                  DateTime.fromMillisecondsSinceEpoch(
-                                          message.createdAt ?? 0)
-                                      .toString(),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(_showDate(message.createdAt)),
+                                  ],
                                 ),
                               ],
                             ),
@@ -321,6 +325,20 @@ class _MyHomePageState extends State<MyHomePage> {
       text: content,
       loopAnimation: false,
     );
+  }
+
+  String _showDate(int? milliseconds) {
+    if (milliseconds != null) {
+      final date = DateTime.fromMillisecondsSinceEpoch(milliseconds);
+      if (date.toString().substring(0, 10) ==
+          DateTime.now().toString().substring(0, 10)) {
+        return date.toString().substring(11, 16);
+      } else {
+        return date.toString().substring(0, 10);
+      }
+    } else {
+      return "unknown";
+    }
   }
 }
 
