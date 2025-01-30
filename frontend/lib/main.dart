@@ -67,12 +67,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.42.83:3000", <String, dynamic>{
       "transports": ['websocket']
     });
-
-    _loadFile();
     _loggati();
+    _loadFile();
 
     socket.on('connect', (_) {
       setState(() {});
@@ -100,10 +99,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _streamController.close();
   }
 
-  void _assignUser(User user) {
-    _user = types.User(
-        id: user.uid, firstName: user.displayName, imageUrl: user.photoURL);
-  }
 
   Future<void> _loggati() async {
     try {
@@ -118,7 +113,10 @@ class _MyHomePageState extends State<MyHomePage> {
         User? user = userCredential.user;
         if (user != null) {
           setState(() {
-            _assignUser(user);
+            _user = types.User(
+                id: user.uid,
+                firstName: user.displayName,
+                imageUrl: user.photoURL);
             _state = States.menu;
           });
         }
@@ -167,6 +165,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         );
       case States.menu:
+      _preview = _createPreview();
         return Center(
           child: ListView.builder(
             padding: const EdgeInsets.only(left: 5),
@@ -246,12 +245,15 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: _buildBody(),
-    );
+        appBar: AppBar(
+          title: Text(widget.title),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        ),
+        body: _buildBody(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => {_state = States.inChat},
+          child: const Icon(Icons.message),
+        ));
   }
 
   void _handleSendPress(types.PartialText message) {
@@ -286,7 +288,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!_messages.any((msg) => msg.id == message.id)) {
       setState(() {
         _messages.insert(0, message);
-        _createPreview();
+        _preview = _createPreview();
       });
     }
 
@@ -313,7 +315,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _messages = messages;
-      _preview = _createPreview();
     });
   }
 
@@ -347,19 +348,23 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  dynamic _createPreview() {
-    dynamic prev = [];
+  List<dynamic> _createPreview() {
+    List<dynamic> prev = [];
 
-    for (int i = 0; i < _messages.length; i++) {
-      final message = _messages[i];
-      if (message.author.id != _user.id && !prev.any((msg) => msg.author.id == message.author.id)) {
-        setState(() {
-          prev.insert(0, message);
-        });
+    if (_messages.isNotEmpty) {
+      for (int i = 0; i < _messages.length; i++) {
+        final message = _messages[i];
+        if (message.author.id != _user.id &&
+            !prev.any((msg) => msg.author.id == message.author.id)) {
+          setState(() {
+            prev.add(message);
+          });
+        }
       }
-    }
-    if (prev == []) {
-      _state = States.inChat;
+    } else {
+      setState(() {
+        _state = States.inChat;
+      });
     }
     return prev;
   }
