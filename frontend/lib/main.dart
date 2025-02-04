@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:uuid/uuid.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -62,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late IO.Socket socket;
   final StreamController<String> _streamController = StreamController<String>();
   Stream<String> get messageStream => _streamController.stream;
-  dynamic? otherUserId;
+  dynamic otherUserId;
   dynamic dynMessages;
 
   @override
