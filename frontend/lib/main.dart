@@ -78,7 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
     socket.on('connect', (_) {
       setState(() {});
     });
-    socket.emit("join-room", "broadcast");
+    socket.emit("join-room", _user.id);
 
     socket.on('message', (data) {
       final message = data;
@@ -235,6 +235,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       case States.inChat:
         dynMessages = _loadMessagesWithIds();
+        socket.emit("join-room", otherUserId);
         return Chat(
           messages: dynMessages,
           onSendPressed: _handleSendPress,
@@ -264,8 +265,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (message.text == "/logout") {
       _logout();
     } else if (socket.connected) {
-      if (message.text.startsWith("/room")) {
-        socket.emit("join-room", message.text.substring(5));
+      if (message.text.startsWith("/back")) {
+        // socket.emit("join-room", message.text.substring(5));
+        _state = States.menu;
       } else {
         final textMessage = types.TextMessage(
             author: _user,

@@ -36,7 +36,8 @@ io.on('connection', socket => {
         //         //invio il messaggio nella stanza in cui siamo connessi
         //         io.to(currentRoom).emit("message", data) 
         // }   
-        io.to(currentRoom).emit("message", data)
+        console.log(data.roomId)
+        io.to(data.roomId).emit("message", data)
     })
 
 })
