@@ -78,7 +78,6 @@ class _MyHomePageState extends State<MyHomePage> {
     socket.on('connect', (_) {
       setState(() {});
     });
-    socket.emit("join-room", "broadcast");
 
     socket.on('message', (data) {
       final message = data;
@@ -118,6 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 id: user.uid,
                 firstName: user.displayName,
                 imageUrl: user.photoURL);
+            socket.emit("join-my-room", _user.id);
             _state = States.menu;
           });
         }
@@ -235,7 +235,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
       case States.inChat:
         dynMessages = _loadMessagesWithIds();
-        if(dynMessages.isNotEmpty) {dynMessages = _messages;}
+        if (dynMessages.isNotEmpty) {
+          dynMessages = _messages;
+        }
+        socket.emit("join-room", otherUserId ?? "broadcast");
         return Chat(
           messages: dynMessages,
           onSendPressed: _handleSendPress,
@@ -250,24 +253,26 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        ),
-        body: _buildBody(),
-        // floatingActionButton: FloatingActionButton(
-        //   onPressed: () => {_state = States.inChat},
-        //   child: const Icon(Icons.message),
-        // )
-        );
+      appBar: AppBar(
+        title: Text(widget.title),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: _buildBody(),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () => {_state = States.inChat},
+      //   child: const Icon(Icons.message),
+      // )
+    );
   }
 
   void _handleSendPress(types.PartialText message) {
     if (message.text == "/logout") {
       _logout();
     } else if (socket.connected) {
-      if (message.text.startsWith("/room")) {
-        socket.emit("join-room", message.text.substring(5));
+      if (message.text.startsWith("/back")) {
+        // socket.emit("join-room", message.text.substring(5));
+        socket.emit("leave-room");
+        _state = States.menu;
       } else {
         final textMessage = types.TextMessage(
             author: _user,
@@ -275,7 +280,7 @@ class _MyHomePageState extends State<MyHomePage> {
             text: message.text,
             createdAt: DateTime.now().millisecondsSinceEpoch,
             roomId: otherUserId);
-            
+
         addMessage(textMessage, true);
       }
     }
@@ -377,11 +382,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return prev;
   }
 
-   List<types.Message> _loadMessagesWithIds() {
-     List<types.Message> ret = [];
+  List<types.Message> _loadMessagesWithIds() {
+    List<types.Message> ret = [];
     _messages.forEach((message) {
-      if (message.roomId == otherUserId ||
-          message.author.id == otherUserId) {
+      if (message.roomId == otherUserId || message.author.id == otherUserId) {
         ret.add(message);
       }
     });
