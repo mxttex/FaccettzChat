@@ -372,8 +372,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return prev;
   }
 
-  dynamic _loadMessagesWithIds() {
-    dynamic ret = [];
+  List<types.Message> _loadMessagesWithIds() {
+    List<types.Message> ret = [];
     String currentUserId = _user.id;
     _messages.forEach((message) {
       if (message.author.id == currentUserId ||
