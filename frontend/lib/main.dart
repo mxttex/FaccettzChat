@@ -63,6 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final StreamController<String> _streamController = StreamController<String>();
   Stream<String> get messageStream => _streamController.stream;
   dynamic? otherUserId;
+  dynamic dynMessages;
 
   @override
   void initState() {
@@ -233,7 +234,8 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
       case States.inChat:
-        dynamic dynMessages = _loadMessagesWithIds();
+        dynMessages = _loadMessagesWithIds();
+        if(dynMessages.isNotEmpty) {dynMessages = _messages;}
         return Chat(
           messages: dynMessages,
           onSendPressed: _handleSendPress,
@@ -253,10 +255,11 @@ class _MyHomePageState extends State<MyHomePage> {
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         ),
         body: _buildBody(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => {_state = States.inChat},
-          child: const Icon(Icons.message),
-        ));
+        // floatingActionButton: FloatingActionButton(
+        //   onPressed: () => {_state = States.inChat},
+        //   child: const Icon(Icons.message),
+        // )
+        );
   }
 
   void _handleSendPress(types.PartialText message) {
@@ -270,7 +273,9 @@ class _MyHomePageState extends State<MyHomePage> {
             author: _user,
             id: const Uuid().v4(),
             text: message.text,
-            createdAt: DateTime.now().millisecondsSinceEpoch);
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            roomId: otherUserId);
+            
         addMessage(textMessage, true);
       }
     }
@@ -372,13 +377,12 @@ class _MyHomePageState extends State<MyHomePage> {
     return prev;
   }
 
-  List<types.Message> _loadMessagesWithIds() {
-    List<types.Message> ret = [];
-    String currentUserId = _user.id;
+   List<types.Message> _loadMessagesWithIds() {
+     List<types.Message> ret = [];
     _messages.forEach((message) {
-      if (message.author.id == currentUserId ||
+      if (message.roomId == otherUserId ||
           message.author.id == otherUserId) {
-        ret.insert(0, message);
+        ret.add(message);
       }
     });
     return ret;
