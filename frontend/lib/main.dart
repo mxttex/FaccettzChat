@@ -99,7 +99,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _streamController.close();
   }
 
-
   Future<void> _loggati() async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
@@ -165,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         );
       case States.menu:
-      _preview = _createPreview();
+        _preview = _createPreview();
         return Center(
           child: ListView.builder(
             padding: const EdgeInsets.only(left: 5),
@@ -174,58 +173,59 @@ class _MyHomePageState extends State<MyHomePage> {
               final message = _preview[index] as types.TextMessage;
 
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    try {
-                      _state = States.inChat;
-                    } catch (e) {
-                      _showAlert(context, "title", e.toString(), false);
-                    }
-                  });
-                },
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      UserAvatar(imageUrl: message.author.imageUrl ?? ""),
-                      const SizedBox(width: 10),
+                  onTap: () {
+                    setState(() {
+                      try {
+                        _state = States.inChat;
+                      } catch (e) {
+                        _showAlert(context, "title", e.toString(), false);
+                      }
+                    });
+                  },
+                  child: SizedBox(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 15),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          UserAvatar(imageUrl: message.author.imageUrl ?? ""),
+                          const SizedBox(width: 10),
 
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Nome dell'autore
-                            Text(
-                              message.author.firstName ?? "Unknown",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Nome dell'autore
+                                Text(
+                                  message.author.firstName ?? "Unknown",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+
+                                Text(
+                                  message.text,
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 14),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 3),
+                          ),
 
-                            Text(
-                              message.text,
-                              style: const TextStyle(
-                                  color: Colors.black, fontSize: 14),
-                            ),
-                          ],
-                        ),
+                          // Data del messaggio
+                          Text(
+                            _showDate(message.createdAt),
+                            style: const TextStyle(
+                                color: Colors.black, fontSize: 12),
+                          ),
+                        ],
                       ),
-
-                      // Data del messaggio
-                      Text(
-                        _showDate(message.createdAt),
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+                    ),
+                  ));
             },
           ),
         );
