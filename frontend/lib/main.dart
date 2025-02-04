@@ -63,6 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final StreamController<String> _streamController = StreamController<String>();
   Stream<String> get messageStream => _streamController.stream;
   dynamic? otherUserId;
+  dynamic dynMessages;
 
   @override
   void initState() {
@@ -233,7 +234,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
       case States.inChat:
-        dynamic dynMessages = _loadMessagesWithIds();
+        dynMessages = _loadMessagesWithIds();
         return Chat(
           messages: dynMessages,
           onSendPressed: _handleSendPress,
@@ -270,7 +271,9 @@ class _MyHomePageState extends State<MyHomePage> {
             author: _user,
             id: const Uuid().v4(),
             text: message.text,
-            createdAt: DateTime.now().millisecondsSinceEpoch);
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            roomId: otherUserId);
+            
         addMessage(textMessage, true);
       }
     }
@@ -374,9 +377,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   dynamic _loadMessagesWithIds() {
     dynamic ret = [];
-    String currentUserId = _user.id;
     _messages.forEach((message) {
-      if (message.author.id == currentUserId ||
+      if (message.remoteId == otherUserId ||
           message.author.id == otherUserId) {
         ret.insert(0, message);
       }
