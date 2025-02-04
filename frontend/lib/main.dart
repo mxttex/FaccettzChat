@@ -235,9 +235,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       case States.inChat:
         dynMessages = _loadMessagesWithIds();
-        if (dynMessages.isNotEmpty) {
-          dynMessages = _messages;
-        }
+
         socket.emit("join-room", otherUserId ?? "broadcast");
         return Chat(
           messages: dynMessages,
@@ -272,7 +270,9 @@ class _MyHomePageState extends State<MyHomePage> {
       if (message.text.startsWith("/back")) {
         // socket.emit("join-room", message.text.substring(5));
         socket.emit("leave-room");
-        _state = States.menu;
+        setState(() {
+          _state = States.menu;
+        });
       } else {
         final textMessage = types.TextMessage(
             author: _user,
@@ -383,14 +383,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<types.Message> _loadMessagesWithIds() {
-    List<types.Message> ret = [];
-    _messages.forEach((message) {
-      if (message.roomId == otherUserId || message.author.id == otherUserId) {
-        ret.add(message);
-      }
-    });
-    return ret;
-  }
+  return _messages.where((message) {
+    return (message.roomId == otherUserId || message.author.id == otherUserId);
+  }).toList();
+}
 }
 
 class UserAvatar extends StatelessWidget {
