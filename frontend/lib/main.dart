@@ -62,12 +62,13 @@ class _MyHomePageState extends State<MyHomePage> {
   late IO.Socket socket;
   final StreamController<String> _streamController = StreamController<String>();
   Stream<String> get messageStream => _streamController.stream;
+  dynamic? otherUserId;
 
   @override
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.42.83:3000", <String, dynamic>{
+    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
       "transports": ['websocket']
     });
     _loggati();
@@ -177,6 +178,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     setState(() {
                       try {
                         _state = States.inChat;
+                        otherUserId = message.author.id;
                       } catch (e) {
                         _showAlert(context, "title", e.toString(), false);
                       }
@@ -231,8 +233,9 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
       case States.inChat:
+        dynamic dynMessages = _loadMessagesWithIds();
         return Chat(
-          messages: _messages,
+          messages: dynMessages,
           onSendPressed: _handleSendPress,
           user: _user,
           onPreviewDataFetched: _handlePreviewDataFetched,
@@ -367,6 +370,18 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
     return prev;
+  }
+
+  dynamic _loadMessagesWithIds() {
+    dynamic ret = [];
+    String currentUserId = _user.id;
+    _messages.forEach((message) {
+      if (message.author.id == currentUserId ||
+          message.author.id == otherUserId) {
+        ret.insert(0, message);
+      }
+    });
+    return ret;
   }
 }
 
