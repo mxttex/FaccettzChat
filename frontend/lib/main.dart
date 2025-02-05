@@ -36,6 +36,7 @@ class SimpleChat extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true),
       home: const MyHomePage(title: 'FACCETTZ CHAT'),
+      
     );
   }
 }
@@ -254,10 +255,30 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () => {_state = States.inChat},
-      //   child: const Icon(Icons.message),
-      // )
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            ListTile(
+               title: const Text('Back to Menu'),
+                onTap: () {
+                  if(logged){
+                    setState(() {
+                      _state = States.menu;
+                    });
+                  }
+            }),
+            ListTile(
+               title: const Text('Logout'),
+                onTap: () {
+                  setState(() {
+                    _state = States.login;
+                    _user = null;
+                    logged = false;
+                  });
+            })
+          ],
+        ),
+      ),
     );
   }
 
