@@ -23,7 +23,7 @@ void main() async {
   );
 }
 
-enum States { login, menu, inChat }
+enum States { login, menu, inChat, ipSettings }
 
 class SimpleChat extends StatelessWidget {
   const SimpleChat({super.key});
@@ -36,7 +36,6 @@ class SimpleChat extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true),
       home: const MyHomePage(title: 'FACCETTZ CHAT'),
-      
     );
   }
 }
@@ -51,6 +50,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  //dichiarazione delle variabili di istanza che mi servono
   List<types.Message> _messages = [];
   dynamic _path;
   dynamic _user;
@@ -63,14 +63,37 @@ class _MyHomePageState extends State<MyHomePage> {
   Stream<String> get messageStream => _streamController.stream;
   dynamic otherUserId;
   dynamic dynMessages;
+  TextEditingController? _ipChecker;
+  String ip = "192.168.1.24";
+  String? currentRoom;
 
+  dynamic connectToServer() {
+    return IO.io("http://$ip:3000", <String, dynamic>{
+      "transports": ['websocket']
+    });
+  }
+
+  void defineMessage() {
+    socket.on('message', (data) {
+      final message = data;
+      final textMessage = types.TextMessage(
+        author: types.User.fromJson(message['author']),
+        id: message['id'],
+        text: message['text'],
+        createdAt: message['createdAt'],
+      );
+      setState(() {
+        addMessage(textMessage, false);
+      });
+    });
+  }
+
+  //override dell'initState
   @override
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
-      "transports": ['websocket']
-    });
+    socket = connectToServer();
     _loggati();
     _loadFile();
 
@@ -99,6 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _streamController.close();
   }
 
+  //metodo che ti logga con firebase
   Future<void> _loggati() async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
@@ -130,6 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  //metodo che slogga
   Future<void> _logout() async {
     try {
       await GoogleSignIn().signOut();
@@ -144,6 +169,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  //metodo che carica il file json in cui sono salvati i messaggi
   Future<void> _loadFile() async {
     _path = await _getFilePath();
     _messagesFile = File(_path);
@@ -155,7 +181,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  //metodo che crea la view dell'app
   Widget _buildBody() {
+    // if (_ipChecker != null) {
+    //   _ipChecker!.dispose();
+    // }
     switch (_state) {
       case States.login:
         return Column(
@@ -234,8 +264,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
       case States.inChat:
         dynMessages = _loadMessagesWithIds();
-
-        socket.emit("join-room", otherUserId ?? "broadcast");
+        if(currentRoom == null || currentRoom != otherUserId){
+          currentRoom = otherUserId;
+          socket.emit("join-room", [currentRoom ?? "broadcast",  _user.firstName]);
+        }
         return Chat(
           messages: dynMessages,
           onSendPressed: _handleSendPress,
@@ -244,9 +276,30 @@ class _MyHomePageState extends State<MyHomePage> {
           showUserAvatars: true,
           showUserNames: true,
         );
+      case States.ipSettings:
+        _ipChecker = TextEditingController();
+        return Row(children: [
+          SizedBox(
+              width: 150,
+              height: 50,
+              child: TextField(
+                controller: _ipChecker,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: "Aggiorna IP server"),
+                keyboardType: TextInputType.number,
+                maxLines: 5,
+              )),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child:
+                ElevatedButton(onPressed: _changeIp, child: const Text("send")),
+          ),
+        ]);
     }
   }
 
+  //ovveride del metodo che costruisce la chat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -259,23 +312,32 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ListView(
           children: [
             ListTile(
-               title: const Text('Back to Menu'),
+                title: const Text('Back to Menu'),
                 onTap: () {
-                  if(logged){
+                  if (logged) {
                     setState(() {
                       _state = States.menu;
                     });
                   }
-            }),
+                }),
             ListTile(
-               title: const Text('Logout'),
+                title: const Text('Logout'),
                 onTap: () {
                   setState(() {
                     _state = States.login;
                     _user = null;
                     logged = false;
                   });
-            })
+                }),
+            ListTile(
+                title: const Text('Change server IP'),
+                onTap: () {
+                  setState(() {
+                    socket.disconnect();
+                    _state = States.ipSettings;
+                  });
+                  
+                })
           ],
         ),
       ),
@@ -283,16 +345,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleSendPress(types.PartialText message) {
-    if (message.text == "/logout") {
-      _logout();
-    } else if (socket.connected) {
-      if (message.text.startsWith("/back")) {
-        // socket.emit("join-room", message.text.substring(5));
-        socket.emit("leave-room");
-        setState(() {
-          _state = States.menu;
-        });
-      } else {
+   
         final textMessage = types.TextMessage(
             author: _user,
             id: const Uuid().v4(),
@@ -301,8 +354,8 @@ class _MyHomePageState extends State<MyHomePage> {
             roomId: otherUserId);
 
         addMessage(textMessage, true);
-      }
-    }
+      
+    
   }
 
   void _handlePreviewDataFetched(
@@ -402,10 +455,30 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<types.Message> _loadMessagesWithIds() {
-  return _messages.where((message) {
-    return (message.roomId == otherUserId || message.author.id == otherUserId);
-  }).toList();
-}
+    return _messages.where((message) {
+      return (message.roomId == otherUserId ||
+          message.author.id == otherUserId);
+    }).toList();
+  }
+
+  void _changeIp() {
+    socket.disconnect();
+    socket.dispose();
+    try {
+      setState(() {
+        ip = _ipChecker!.text;
+        socket = connectToServer();
+        // socket.on("connect", (_) {
+        // });
+        _state = States.menu;
+      });
+    } catch (e) {
+      if (mounted) {
+        _showAlert(context, "Errore Nel Cambio dell'Ip",
+            "Errore nel cambio dell'ip: $e", false);
+      }
+    }
+  }
 }
 
 class UserAvatar extends StatelessWidget {
