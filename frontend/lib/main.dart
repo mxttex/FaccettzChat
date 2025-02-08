@@ -364,7 +364,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ListTile(
                 title: const Text('Back to Menu'),
                 onTap: () {
-                  if (logged) {
+                  if (_user != null) {
                     setState(() {
                       _state = States.menu;
                     });
