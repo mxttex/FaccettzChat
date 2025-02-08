@@ -23,7 +23,7 @@ void main() async {
   );
 }
 
-enum States { login, menu, inChat, ipSettings }
+enum States { login, menu, inChat, ipSettings, allUsers }
 
 class SimpleChat extends StatelessWidget {
   const SimpleChat({super.key});
@@ -50,7 +50,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  //dichiarazione delle variabili di istanza che mi servono
   List<types.Message> _messages = [];
   dynamic _path;
   dynamic _user;
@@ -66,6 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
   TextEditingController? _ipChecker;
   String ip = "192.168.1.24";
   String? currentRoom;
+  List<dynamic> users = [];
 
   dynamic connectToServer() {
     return IO.io("http://$ip:3000", <String, dynamic>{
@@ -88,7 +88,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  //override dell'initState
   @override
   void initState() {
     super.initState();
@@ -113,6 +112,13 @@ class _MyHomePageState extends State<MyHomePage> {
         addMessage(textMessage, false);
       });
     });
+
+    socket.on('receive-users', (data) {
+      users = data;
+      users.remove((user) =>{
+         user['uid'] == _user.id
+      });
+    });
   }
 
   @override
@@ -122,7 +128,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _streamController.close();
   }
 
-  //metodo che ti logga con firebase
   Future<void> _loggati() async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
@@ -154,7 +159,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  //metodo che slogga
   Future<void> _logout() async {
     try {
       await GoogleSignIn().signOut();
@@ -169,7 +173,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  //metodo che carica il file json in cui sono salvati i messaggi
   Future<void> _loadFile() async {
     _path = await _getFilePath();
     _messagesFile = File(_path);
@@ -181,11 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  //metodo che crea la view dell'app
-  Widget _buildBody() {
-    // if (_ipChecker != null) {
-    //   _ipChecker!.dispose();
-    // }
+  Widget? _buildBody() {
     switch (_state) {
       case States.login:
         return Column(
@@ -223,12 +222,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           UserAvatar(imageUrl: message.author.imageUrl ?? ""),
                           const SizedBox(width: 10),
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Nome dell'autore
                                 Text(
                                   message.author.firstName ?? "Unknown",
                                   style: const TextStyle(
@@ -238,7 +235,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                 ),
                                 const SizedBox(height: 3),
-
                                 Text(
                                   message.text,
                                   style: const TextStyle(
@@ -247,8 +243,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               ],
                             ),
                           ),
-
-                          // Data del messaggio
                           Text(
                             _showDate(message.createdAt),
                             style: const TextStyle(
@@ -264,9 +258,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
       case States.inChat:
         dynMessages = _loadMessagesWithIds();
-        if(currentRoom == null || currentRoom != otherUserId){
+        if (currentRoom == null || currentRoom != otherUserId) {
           currentRoom = otherUserId;
-          socket.emit("join-room", [currentRoom ?? "broadcast",  _user.firstName]);
+          socket
+              .emit("join-room", [currentRoom ?? "broadcast", _user.firstName]);
         }
         return Chat(
           messages: dynMessages,
@@ -296,10 +291,65 @@ class _MyHomePageState extends State<MyHomePage> {
                 ElevatedButton(onPressed: _changeIp, child: const Text("send")),
           ),
         ]);
+      case States.allUsers:
+        try {
+          return Center(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(left: 5),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        try {
+                          _state = States.inChat;
+                          otherUserId = user['uid'];
+                        } catch (e) {
+                          print("$e");
+                        }
+                      });
+                    },
+                    child: SizedBox(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 15),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            UserAvatar(imageUrl: user['photoURL'] ?? ""),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user['displayName'] ?? "Unknown",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3)
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ));
+              },
+            ),
+          );
+        } catch (e) {
+          if (mounted) {
+            _showAlert(context, "Errore", e.toString(), false);
+          }
+        }
     }
   }
 
-  //ovveride del metodo che costruisce la chat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -307,7 +357,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: _buildBody(),
+      body: _buildBody()!,
       drawer: Drawer(
         child: ListView(
           children: [
@@ -336,7 +386,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     socket.disconnect();
                     _state = States.ipSettings;
                   });
-                  
+                }),
+            ListTile(
+                title: const Text('See Users'),
+                onTap: () {
+                  setState(() {
+                    _state = States.allUsers;
+                  });
                 })
           ],
         ),
@@ -345,17 +401,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleSendPress(types.PartialText message) {
-   
-        final textMessage = types.TextMessage(
-            author: _user,
-            id: const Uuid().v4(),
-            text: message.text,
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            roomId: otherUserId);
+    final textMessage = types.TextMessage(
+        author: _user,
+        id: const Uuid().v4(),
+        text: message.text,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        roomId: otherUserId);
 
-        addMessage(textMessage, true);
-      
-    
+    addMessage(textMessage, true);
   }
 
   void _handlePreviewDataFetched(
@@ -468,8 +521,6 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         ip = _ipChecker!.text;
         socket = connectToServer();
-        // socket.on("connect", (_) {
-        // });
         _state = States.menu;
       });
     } catch (e) {
@@ -488,16 +539,14 @@ class UserAvatar extends StatelessWidget {
   const UserAvatar({super.key, required this.imageUrl, this.radius = 32});
 
   @override
-
-//codice generato da AI, molto probabilmente da sistemare
   Widget build(BuildContext context) {
     return CircleAvatar(
         radius: radius,
-        backgroundColor: Colors.white, // Bordo bianco attorno all'immagine
+        backgroundColor: Colors.white,
         child: CircleAvatar(
-          radius: radius - 3, // Ridotto per il bordo
+          radius: radius - 3,
           backgroundImage: imageUrl.startsWith('http')
-              ? NetworkImage(imageUrl) // Se è un URL, carica da internet
+              ? NetworkImage(imageUrl)
               : AssetImage('assets/images/$imageUrl') as ImageProvider,
           onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30),
         ));
