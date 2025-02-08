@@ -23,7 +23,7 @@ void main() async {
   );
 }
 
-enum States { login, menu, inChat }
+enum States { login, menu, inChat, ipSettings, allUsers }
 
 class SimpleChat extends StatelessWidget {
   const SimpleChat({super.key});
@@ -62,14 +62,37 @@ class _MyHomePageState extends State<MyHomePage> {
   Stream<String> get messageStream => _streamController.stream;
   dynamic otherUserId;
   dynamic dynMessages;
+  TextEditingController? _ipChecker;
+  String ip = "192.168.1.24";
+  String? currentRoom;
+  List<dynamic> users = [];
+
+  dynamic connectToServer() {
+    return IO.io("http://$ip:3000", <String, dynamic>{
+      "transports": ['websocket']
+    });
+  }
+
+  void defineMessage() {
+    socket.on('message', (data) {
+      final message = data;
+      final textMessage = types.TextMessage(
+        author: types.User.fromJson(message['author']),
+        id: message['id'],
+        text: message['text'],
+        createdAt: message['createdAt'],
+      );
+      setState(() {
+        addMessage(textMessage, false);
+      });
+    });
+  }
 
   @override
   void initState() {
     super.initState();
 
-    socket = IO.io("http://192.168.0.124:3000", <String, dynamic>{
-      "transports": ['websocket']
-    });
+    socket = connectToServer();
     _loggati();
     _loadFile();
 
@@ -87,6 +110,13 @@ class _MyHomePageState extends State<MyHomePage> {
       );
       setState(() {
         addMessage(textMessage, false);
+      });
+    });
+
+    socket.on('receive-users', (data) {
+      users = data;
+      users.remove((user) =>{
+         user['uid'] == _user.id
       });
     });
   }
@@ -154,7 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Widget _buildBody() {
+  Widget? _buildBody() {
     switch (_state) {
       case States.login:
         return Column(
@@ -192,12 +222,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           UserAvatar(imageUrl: message.author.imageUrl ?? ""),
                           const SizedBox(width: 10),
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Nome dell'autore
                                 Text(
                                   message.author.firstName ?? "Unknown",
                                   style: const TextStyle(
@@ -207,7 +235,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                 ),
                                 const SizedBox(height: 3),
-
                                 Text(
                                   message.text,
                                   style: const TextStyle(
@@ -216,8 +243,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               ],
                             ),
                           ),
-
-                          // Data del messaggio
                           Text(
                             _showDate(message.createdAt),
                             style: const TextStyle(
@@ -233,8 +258,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
       case States.inChat:
         dynMessages = _loadMessagesWithIds();
-
-        socket.emit("join-room", otherUserId ?? "broadcast");
+        if (currentRoom == null || currentRoom != otherUserId) {
+          currentRoom = otherUserId;
+          socket
+              .emit("join-room", [currentRoom ?? "broadcast", _user.firstName]);
+        }
         return Chat(
           messages: dynMessages,
           onSendPressed: _handleSendPress,
@@ -243,6 +271,82 @@ class _MyHomePageState extends State<MyHomePage> {
           showUserAvatars: true,
           showUserNames: true,
         );
+      case States.ipSettings:
+        _ipChecker = TextEditingController();
+        return Row(children: [
+          SizedBox(
+              width: 150,
+              height: 50,
+              child: TextField(
+                controller: _ipChecker,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: "Aggiorna IP server"),
+                keyboardType: TextInputType.number,
+                maxLines: 5,
+              )),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child:
+                ElevatedButton(onPressed: _changeIp, child: const Text("send")),
+          ),
+        ]);
+      case States.allUsers:
+        try {
+          return Center(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(left: 5),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        try {
+                          _state = States.inChat;
+                          otherUserId = user['uid'];
+                        } catch (e) {
+                          print("$e");
+                        }
+                      });
+                    },
+                    child: SizedBox(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 15),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            UserAvatar(imageUrl: user['photoURL'] ?? ""),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user['displayName'] ?? "Unknown",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3)
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ));
+              },
+            ),
+          );
+        } catch (e) {
+          if (mounted) {
+            _showAlert(context, "Errore", e.toString(), false);
+          }
+        }
     }
   }
 
@@ -253,35 +357,58 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: _buildBody(),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () => {_state = States.inChat},
-      //   child: const Icon(Icons.message),
-      // )
+      body: _buildBody()!,
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            ListTile(
+                title: const Text('Back to Menu'),
+                onTap: () {
+                  if (_user != null) {
+                    setState(() {
+                      _state = States.menu;
+                    });
+                  }
+                }),
+            ListTile(
+                title: const Text('Logout'),
+                onTap: () {
+                  setState(() {
+                    _state = States.login;
+                    _user = null;
+                    logged = false;
+                  });
+                }),
+            ListTile(
+                title: const Text('Change server IP'),
+                onTap: () {
+                  setState(() {
+                    socket.disconnect();
+                    _state = States.ipSettings;
+                  });
+                }),
+            ListTile(
+                title: const Text('See Users'),
+                onTap: () {
+                  setState(() {
+                    _state = States.allUsers;
+                  });
+                })
+          ],
+        ),
+      ),
     );
   }
 
   void _handleSendPress(types.PartialText message) {
-    if (message.text == "/logout") {
-      _logout();
-    } else if (socket.connected) {
-      if (message.text.startsWith("/back")) {
-        // socket.emit("join-room", message.text.substring(5));
-        socket.emit("leave-room");
-        setState(() {
-          _state = States.menu;
-        });
-      } else {
-        final textMessage = types.TextMessage(
-            author: _user,
-            id: const Uuid().v4(),
-            text: message.text,
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            roomId: otherUserId);
+    final textMessage = types.TextMessage(
+        author: _user,
+        id: const Uuid().v4(),
+        text: message.text,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        roomId: otherUserId);
 
-        addMessage(textMessage, true);
-      }
-    }
+    addMessage(textMessage, true);
   }
 
   void _handlePreviewDataFetched(
@@ -381,10 +508,28 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<types.Message> _loadMessagesWithIds() {
-  return _messages.where((message) {
-    return (message.roomId == otherUserId || message.author.id == otherUserId);
-  }).toList();
-}
+    return _messages.where((message) {
+      return (message.roomId == otherUserId ||
+          message.author.id == otherUserId);
+    }).toList();
+  }
+
+  void _changeIp() {
+    socket.disconnect();
+    socket.dispose();
+    try {
+      setState(() {
+        ip = _ipChecker!.text;
+        socket = connectToServer();
+        _state = States.menu;
+      });
+    } catch (e) {
+      if (mounted) {
+        _showAlert(context, "Errore Nel Cambio dell'Ip",
+            "Errore nel cambio dell'ip: $e", false);
+      }
+    }
+  }
 }
 
 class UserAvatar extends StatelessWidget {
@@ -394,16 +539,14 @@ class UserAvatar extends StatelessWidget {
   const UserAvatar({super.key, required this.imageUrl, this.radius = 32});
 
   @override
-
-//codice generato da AI, molto probabilmente da sistemare
   Widget build(BuildContext context) {
     return CircleAvatar(
         radius: radius,
-        backgroundColor: Colors.white, // Bordo bianco attorno all'immagine
+        backgroundColor: Colors.white,
         child: CircleAvatar(
-          radius: radius - 3, // Ridotto per il bordo
+          radius: radius - 3,
           backgroundImage: imageUrl.startsWith('http')
-              ? NetworkImage(imageUrl) // Se è un URL, carica da internet
+              ? NetworkImage(imageUrl)
               : AssetImage('assets/images/$imageUrl') as ImageProvider,
           onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30),
         ));
