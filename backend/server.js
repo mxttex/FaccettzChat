@@ -4,7 +4,8 @@ const socketIo = require("socket.io");
 const admin = require("firebase-admin");
 const { getAuth } = require("firebase-admin/auth");
 
-var serviceAccount = ("C:\\Users\\matte\\Desktop\\importantissimo\\key.json")
+const serviceAccount = require("./megasegreto.js")
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
