@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:uuid/uuid.dart';
+import 'package:is_valid/is_valid.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
@@ -115,9 +116,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     socket.on('receive-users', (data) {
       users = data;
-      users.remove((user) =>{
-         user['uid'] == _user.id
-      });
+      users.remove((user) => {user['uid'] == _user.id});
     });
   }
 
@@ -187,11 +186,13 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget? _buildBody() {
     switch (_state) {
       case States.login:
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            SignInButton(Buttons.Google, onPressed: _loggati),
-          ],
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              SignInButton(Buttons.Google, onPressed: _loggati),
+            ],
+          ),
         );
       case States.menu:
         _preview = _createPreview();
@@ -273,24 +274,27 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       case States.ipSettings:
         _ipChecker = TextEditingController();
-        return Row(children: [
-          SizedBox(
-              width: 150,
-              height: 50,
-              child: TextField(
-                controller: _ipChecker,
-                decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "Aggiorna IP server"),
-                keyboardType: TextInputType.number,
-                maxLines: 5,
-              )),
-          Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child:
-                ElevatedButton(onPressed: _changeIp, child: const Text("send")),
-          ),
-        ]);
+        return Center(
+          child: Column(children: [
+            const SizedBox(height: 200),
+            SizedBox(
+                width: 250,
+                height: 50,
+                child: TextField(
+                  controller: _ipChecker,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "Aggiorna IP server"),
+                  keyboardType: TextInputType.number,
+                  maxLines: 5,
+                )),
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: ElevatedButton(
+                  onPressed: _changeIp, child: const Text("Cambia Ip")),
+            ),
+          ]),
+        );
       case States.allUsers:
         try {
           return Center(
@@ -352,52 +356,82 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: _buildBody()!,
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            ListTile(
-                title: const Text('Back to Menu'),
-                onTap: () {
-                  if (_user != null) {
-                    setState(() {
-                      _state = States.menu;
-                    });
-                  }
-                }),
-            ListTile(
-                title: const Text('Logout'),
-                onTap: () {
-                  setState(() {
-                    _state = States.login;
-                    _user = null;
-                    logged = false;
-                  });
-                }),
-            ListTile(
-                title: const Text('Change server IP'),
-                onTap: () {
-                  setState(() {
-                    socket.disconnect();
-                    _state = States.ipSettings;
-                  });
-                }),
-            ListTile(
-                title: const Text('See Users'),
-                onTap: () {
-                  setState(() {
-                    _state = States.allUsers;
-                  });
-                })
-          ],
-        ),
-      ),
-    );
+    return WillPopScope(
+        onWillPop: () async {
+          // Impediamo la chiusura della schermata e torniamo al menu
+          setState(() {
+            _state = States.menu; // Torna al menu
+          });
+          return false; // Impedisce la chiusura della schermata
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.title),
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          ),
+          body: _buildBody()!,
+          drawer: Drawer(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                Container(
+                  color: Theme.of(context).colorScheme.inversePrimary,
+                  height: 201,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 25), // Opzionale: padding per staccarlo un po'
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.center, // Centra orizzontalmente
+                    children: [
+                      UserAvatar(imageUrl: _user.imageUrl ?? "", radius: 50),
+                      const SizedBox(height: 20),
+                      Text(
+                        "Ciao ${_user.firstName}",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                    title: const Text('Back to Menu'),
+                    onTap: () {
+                      if (_user != null) {
+                        setState(() {
+                          _state = States.menu;
+                        });
+                      }
+                    }),
+                ListTile(
+                    title: const Text('Logout'),
+                    onTap: () {
+                      setState(() {
+                        _state = States.login;
+                        _logout();
+                      });
+                    }),
+                ListTile(
+                    title: const Text('Change server IP'),
+                    onTap: () {
+                      setState(() {
+                        socket.disconnect();
+                        _state = States.ipSettings;
+                      });
+                    }),
+                ListTile(
+                    title: const Text('See Users'),
+                    onTap: () {
+                      setState(() {
+                        _state = States.allUsers;
+                      });
+                    })
+              ],
+            ),
+          ),
+        ));
   }
 
   void _handleSendPress(types.PartialText message) {
@@ -520,8 +554,12 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       setState(() {
         ip = _ipChecker!.text;
-        socket = connectToServer();
-        _state = States.menu;
+        if (IsValid.validateIP4Address(ip)) {
+          socket = connectToServer();
+          _state = States.menu;
+        } else {
+          _ipChecker!.text = "Inserire un IP valido";
+        }
       });
     } catch (e) {
       if (mounted) {
@@ -534,17 +572,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class UserAvatar extends StatelessWidget {
   final String imageUrl;
-  final double radius;
+  final double? radius;
 
-  const UserAvatar({super.key, required this.imageUrl, this.radius = 32});
+  const UserAvatar({super.key, required this.imageUrl, this.radius});
 
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-        radius: radius,
+        radius: radius ?? 32,
         backgroundColor: Colors.white,
         child: CircleAvatar(
-          radius: radius - 3,
+          radius: (radius ?? 32) - 3,
           backgroundImage: imageUrl.startsWith('http')
               ? NetworkImage(imageUrl)
               : AssetImage('assets/images/$imageUrl') as ImageProvider,

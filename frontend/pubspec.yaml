@@ -46,6 +46,7 @@ dependencies:
   flutter_signin_button: ^2.0.0
   google_sign_in: ^6.2.2
   firebase_auth: ^5.4.1
+  is_valid: ^0.0.8
 
 dev_dependencies:
   flutter_test:
