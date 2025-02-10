@@ -260,7 +260,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     });
                   },
-                  child: SizedBox( height: 200,
+                  child: SizedBox( height: 90,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 15),
@@ -272,6 +272,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   message.author.firstName ?? "Unknown",
@@ -598,9 +599,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
     } else {
-      setState(() {
-        _state = States.inChat;
-      });
+      
     }
     return prev;
   }
@@ -638,7 +637,7 @@ class UserAvatar extends StatelessWidget {
   final String? imageUrl;
   final double? radius;
 
-  const UserAvatar({super.key, required this.imageUrl, this.radius});
+  const UserAvatar({super.key, this.imageUrl, this.radius});
 
   @override
   Widget build(BuildContext context) {
