@@ -67,12 +67,14 @@ class _MyHomePageState extends State<MyHomePage> {
   String ip = "192.168.58.83";
   String? currentRoom;
   List<dynamic> users = [];
+  late types.User aiuser;
 
   dynamic connectToServer() {
     return IO.io("http://$ip:3000", <String, dynamic>{
       "transports": ['websocket']
     });
   }
+  
 
   void defineMessage() {
     socket.on('message', (data) {
@@ -96,7 +98,15 @@ class _MyHomePageState extends State<MyHomePage> {
     socket = connectToServer();
     _loggati();
     _loadFile();
-
+    if((_messages.last as types.TextMessage).text != "Hey, chatta con Gemini"){
+      final mess =  types.TextMessage(author: aiuser, id: const Uuid().v4(),
+        text: "Hey, chatta con Gemini",
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        roomId: aiuser.id);
+      setState(() {
+        addMessage(mess, false);
+      });
+    }
     socket.on('connect', (_) {
       setState(() {});
     });
@@ -117,6 +127,16 @@ class _MyHomePageState extends State<MyHomePage> {
     socket.on('receive-users', (data) {
       users = data;
       users.remove((user) => {user['uid'] == _user.id});
+    });
+
+    socket.on('ai-answer', (data) {
+      final aianswer = types.TextMessage(author: aiuser, id: const Uuid().v4(),
+        text: data,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        roomId: aiuser.id);
+      setState(() {
+        addMessage(aianswer, false);
+      });
     });
   }
 
@@ -145,6 +165,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 firstName: user.displayName,
                 imageUrl: user.photoURL);
             socket.emit("join-my-room", _user.id);
+            aiuser = types.User(
+              id: "AI${_user.id}",
+              firstName: "Gemini AI",
+              imageUrl: 'https://cdn.mos.cms.futurecdn.net/CWkqBjQwgmSW9hT6fCrVL.jpg'
+            );
             _state = States.menu;
           });
         }
