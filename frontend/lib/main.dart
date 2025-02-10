@@ -64,9 +64,10 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic otherUserId;
   dynamic dynMessages;
   TextEditingController? _ipChecker;
-  String ip = "192.168.1.24";
+  String ip = "192.168.0.124";
   String? currentRoom;
   List<dynamic> users = [];
+  late types.User aiuser;
 
   dynamic connectToServer() {
     return IO.io("http://$ip:3000", <String, dynamic>{
@@ -94,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     socket = connectToServer();
-    _loggati();
+
     _loadFile();
 
     socket.on('connect', (_) {
@@ -117,6 +118,18 @@ class _MyHomePageState extends State<MyHomePage> {
     socket.on('receive-users', (data) {
       users = data;
       users.remove((user) => {user['uid'] == _user.id});
+    });
+
+    socket.on('ai-answer', (data) {
+      final aianswer = types.TextMessage(
+          author: aiuser,
+          id: const Uuid().v4(),
+          text: data,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          roomId: aiuser.id);
+      setState(() {
+        addMessage(aianswer, false);
+      });
     });
   }
 
@@ -145,6 +158,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 firstName: user.displayName,
                 imageUrl: user.photoURL);
             socket.emit("join-my-room", _user.id);
+            aiuser = types.User(
+                id: "AI${_user.id}",
+                //id: "gemini",
+                firstName: "Gemini AI",
+                imageUrl:
+                    'https://cdn.mos.cms.futurecdn.net/CWkqBjQwgmSW9hT6fCrVL.jpg');
             _state = States.menu;
           });
         }
@@ -176,10 +195,20 @@ class _MyHomePageState extends State<MyHomePage> {
     _path = await _getFilePath();
     _messagesFile = File(_path);
     final exists = await _messagesFile!.exists();
+    await _loggati();
     if (exists) {
-      loadMessages();
+      await loadMessages();
     } else {
       _messagesFile!.create();
+      final mess = types.TextMessage(
+          author: aiuser,
+          id: const Uuid().v4(),
+          text: "Hey, chatta con Gemini",
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          roomId: aiuser.id);
+      setState(() {
+        addMessage(mess, false);
+      });
     }
   }
 
@@ -202,7 +231,12 @@ class _MyHomePageState extends State<MyHomePage> {
             itemCount: _preview.length,
             itemBuilder: (context, index) {
               final message = _preview[index] as types.TextMessage;
-
+              late String text;
+              if (message.text.length > 50) {
+                text = '${message.text.substring(0, 47)}...';
+              } else {
+                text = message.text;
+              }
               return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -215,6 +249,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     });
                   },
                   child: SizedBox(
+                    height: 90,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 15),
@@ -226,6 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   message.author.firstName ?? "Unknown",
@@ -237,7 +273,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  message.text,
+                                  text,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 14),
                                 ),
@@ -377,16 +413,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(
                   color: Theme.of(context).colorScheme.inversePrimary,
                   height: 201,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 25), // Opzionale: padding per staccarlo un po'
+                  padding: const EdgeInsets.symmetric(vertical: 25),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.center, // Centra orizzontalmente
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      UserAvatar(imageUrl: _user.imageUrl ?? "", radius: 50),
+                      _user != null
+                          ? UserAvatar(
+                              imageUrl: _user.imageUrl ?? "", radius: 50)
+                          : const CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.grey,
+                              child: Icon(Icons.person,
+                                  size: 50, color: Colors.white),
+                            ),
                       const SizedBox(height: 20),
                       Text(
-                        "Ciao ${_user.firstName}",
+                        _user != null
+                            ? "Ciao ${_user.firstName}"
+                            : "Caricamento...",
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -396,38 +440,39 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                ListTile(
-                    title: const Text('Back to Menu'),
-                    onTap: () {
-                      if (_user != null) {
-                        setState(() {
-                          _state = States.menu;
-                        });
-                      }
-                    }),
-                ListTile(
+                if (_user != null) ...[
+                  ListTile(
+                    title: const Text('Elimina tutti i messaggi'),
+                    onTap: () => setState(() {
+                      if (mounted) {
+                        _messagesFile!.delete();}
+                        _messages = [];
+                         _loadFile();
+                      _state = States.menu;}),
+                  ),
+                  ListTile(
                     title: const Text('Logout'),
                     onTap: () {
                       setState(() {
                         _state = States.login;
                         _logout();
                       });
-                    }),
-                ListTile(
-                    title: const Text('Change server IP'),
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Impostazioni'),
                     onTap: () {
                       setState(() {
                         socket.disconnect();
                         _state = States.ipSettings;
                       });
-                    }),
-                ListTile(
-                    title: const Text('See Users'),
-                    onTap: () {
-                      setState(() {
-                        _state = States.allUsers;
-                      });
-                    })
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Vedi tutti gli utenti'),
+                    onTap: () => setState(() => _state = States.allUsers),
+                  ),
+                ]
               ],
             ),
           ),
@@ -464,7 +509,14 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    if (mode) _sendMessage(message);
+    if (mode) {
+      if (otherUserId == aiuser.id) {
+        socket.emit("ask-ai", message);
+      } else {
+        _sendMessage(message);
+      }
+    }
+    ;
     await _fileWriter();
   }
 
@@ -479,7 +531,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await _messagesFile!.writeAsString(stringToEncode);
   }
 
-  void loadMessages() async {
+  Future<void> loadMessages() async {
     final response = await _messagesFile!.readAsString();
     final messages = (jsonDecode(response) as List)
         .map((e) => types.Message.fromJson(e as Map<String, dynamic>))
@@ -533,11 +585,7 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         }
       }
-    } else {
-      setState(() {
-        _state = States.inChat;
-      });
-    }
+    } else {}
     return prev;
   }
 
@@ -571,10 +619,10 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class UserAvatar extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
   final double? radius;
 
-  const UserAvatar({super.key, required this.imageUrl, this.radius});
+  const UserAvatar({super.key, this.imageUrl, this.radius});
 
   @override
   Widget build(BuildContext context) {
@@ -583,10 +631,11 @@ class UserAvatar extends StatelessWidget {
         backgroundColor: Colors.white,
         child: CircleAvatar(
           radius: (radius ?? 32) - 3,
-          backgroundImage: imageUrl.startsWith('http')
-              ? NetworkImage(imageUrl)
-              : AssetImage('assets/images/$imageUrl') as ImageProvider,
-          onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30),
+          backgroundImage: imageUrl != null && imageUrl!.startsWith('http')
+              ? NetworkImage(imageUrl!)
+              : const Icon(Icons.person, size: 30) as ImageProvider,
+          onBackgroundImageError: (_, __) =>
+              const Icon(Icons.person, size: 30) as ImageProvider,
         ));
   }
 }

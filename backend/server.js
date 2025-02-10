@@ -3,17 +3,20 @@ const http = require("http");
 const socketIo = require("socket.io");
 const admin = require("firebase-admin");
 const { getAuth } = require("firebase-admin/auth");
+const { GoogleGenerativeAI } = require("@google/generative-ai")
 
-const serviceAccount = require("./megasegreto.js")
+const variables = require("./megasegreto.js")
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert(variables.SERVICE_ACCOUNT),
 });
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const IP = process.env.IP || "0.0.0.0";
+const AI = new GoogleGenerativeAI(variables.API_KEY)
+const model = AI.getGenerativeModel({model: "gemini-2.0-flash"})
 
 const listAllUsers = async (nextPageToken) => {
   try {
@@ -34,7 +37,8 @@ const listAllUsers = async (nextPageToken) => {
 
 let users = listAllUsers();
 var currentRoom = "";
-//var room ="";
+var myRoom ="";
+var aiRoom = ''
 
 const io = socketIo(server, {
   cors: {
@@ -57,9 +61,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-my-room", (room) => {
-    socket.join(room);
-    console.log(`Host connesso alla room ${room}`);
-    io.to(room).emit("receive-users", users);
+    myRoom = room
+    aiRoom = "AI" + room
+    socket.join(myRoom);
+    socket.join(aiRoom)
+    console.log(`Host connesso alla room ${myRoom}`);
+    io.to(myRoom).emit("receive-users", users);
   });
 
   socket.on("leave-room", () => {
@@ -69,6 +76,11 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", (data) => {
     io.to(data.roomId).emit("message", data);
   });
+
+  socket.on("ask-ai", async (prompt) => {
+    const result = await model.generateContent(prompt.text)
+    io.to(aiRoom).emit("ai-answer", result.response.text())
+  })
 });
 
 server.listen(PORT, IP, () => {
