@@ -3,7 +3,7 @@ const http = require("http");
 const socketIo = require("socket.io");
 const admin = require("firebase-admin");
 const { getAuth } = require("firebase-admin/auth");
-const { GeminiAI } = require("@google/generativeAI")
+const { GoogleGenerativeAI } = require("@google/generative-ai")
 
 const variables = require("./megasegreto.js")
 
@@ -15,7 +15,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const IP = process.env.IP || "0.0.0.0";
-const AI = new GeminiAI(variables.API_KEY)
+const AI = new GoogleGenerativeAI(variables.API_KEY)
 const model = AI.getGenerativeModel({model: "gemini-1.5-flash"})
 
 const listAllUsers = async (nextPageToken) => {
@@ -78,8 +78,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("ask-ai", async (prompt) => {
-    const result = await model.generateContent(prompt)
-    io.to(aiRoom).emit("ai-answer", result)
+    const result = await model.generateContent(prompt.text)
+    io.to("gemini").emit("ai-answer", result.response.text())
   })
 });
 
