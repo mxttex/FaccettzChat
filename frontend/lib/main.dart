@@ -15,7 +15,6 @@ import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'json_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -245,7 +244,11 @@ class _MyHomePageState extends State<MyHomePage> {
             itemCount: _preview.length,
             itemBuilder: (context, index) {
               final message = _preview[index] as types.TextMessage;
-
+              late String text;
+              if(message.text.length > 50) {
+                text = '${message.text.substring(0,47)}...';
+              }
+              else {text = message.text;}
               return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -257,7 +260,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     });
                   },
-                  child: SizedBox(
+                  child: SizedBox( height: 200,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 15),
@@ -280,7 +283,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  message.text,
+                                  text,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 14),
                                 ),
@@ -632,7 +635,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class UserAvatar extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
   final double? radius;
 
   const UserAvatar({super.key, required this.imageUrl, this.radius});
@@ -644,10 +647,10 @@ class UserAvatar extends StatelessWidget {
         backgroundColor: Colors.white,
         child: CircleAvatar(
           radius: (radius ?? 32) - 3,
-          backgroundImage: imageUrl.startsWith('http')
-              ? NetworkImage(imageUrl)
-              : AssetImage('assets/images/$imageUrl') as ImageProvider,
-          onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30),
+          backgroundImage: imageUrl != null && imageUrl!.startsWith('http')
+              ? NetworkImage(imageUrl!)
+              : const Icon(Icons.person, size: 30) as ImageProvider,
+          onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30) as ImageProvider, 
         ));
   }
 }
