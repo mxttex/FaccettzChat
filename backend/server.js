@@ -79,7 +79,7 @@ io.on("connection", (socket) => {
 
   socket.on("ask-ai", async (prompt) => {
     const result = await model.generateContent(prompt.text)
-    io.to("gemini").emit("ai-answer", result.response.text())
+    io.to(aiRoom).emit("ai-answer", result.response.text())
   })
 });
 
