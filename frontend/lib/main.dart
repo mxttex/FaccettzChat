@@ -214,14 +214,14 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     } else {
       _messagesFile!.create();
-        final mess = types.TextMessage(
-            author: aiuser,
-            id: const Uuid().v4(),
-            text: "Hey, chatta con Gemini",
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            roomId: aiuser.id);
-        setState(() {
-          addMessage(mess, false);
+      final mess = types.TextMessage(
+          author: aiuser,
+          id: const Uuid().v4(),
+          text: "Hey, chatta con Gemini",
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          roomId: aiuser.id);
+      setState(() {
+        addMessage(mess, false);
         });
     }
   }
