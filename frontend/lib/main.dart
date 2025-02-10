@@ -221,7 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
           roomId: aiuser.id);
       setState(() {
         addMessage(mess, false);
-        });
+      });
     }
   }
 
@@ -245,10 +245,11 @@ class _MyHomePageState extends State<MyHomePage> {
             itemBuilder: (context, index) {
               final message = _preview[index] as types.TextMessage;
               late String text;
-              if(message.text.length > 50) {
-                text = '${message.text.substring(0,47)}...';
+              if (message.text.length > 50) {
+                text = '${message.text.substring(0, 47)}...';
+              } else {
+                text = message.text;
               }
-              else {text = message.text;}
               return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -260,7 +261,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     });
                   },
-                  child: SizedBox( height: 90,
+                  child: SizedBox(
+                    height: 90,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 15),
@@ -424,16 +426,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(
                   color: Theme.of(context).colorScheme.inversePrimary,
                   height: 201,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 25), // Opzionale: padding per staccarlo un po'
+                  padding: const EdgeInsets.symmetric(vertical: 25),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.center, // Centra orizzontalmente
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      UserAvatar(imageUrl: _user.imageUrl ?? "", radius: 50),
+                      _user != null
+                          ? UserAvatar(
+                              imageUrl: _user.imageUrl ?? "", radius: 50)
+                          : const CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.grey,
+                              child: Icon(Icons.person,
+                                  size: 50, color: Colors.white),
+                            ),
                       const SizedBox(height: 20),
                       Text(
-                        "Ciao ${_user.firstName}",
+                        _user != null
+                            ? "Ciao ${_user.firstName}"
+                            : "Caricamento...",
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -443,49 +453,34 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                ListTile(
+                if (_user != null) ...[
+                  ListTile(
                     title: const Text('Back to Menu'),
-                    onTap: () {
-                      if (_user != null) {
-                        setState(() {
-                          _state = States.menu;
-                        });
-                      }
-                    }),
-                ListTile(
+                    onTap: () => setState(() => _state = States.menu),
+                  ),
+                  ListTile(
                     title: const Text('Logout'),
                     onTap: () {
                       setState(() {
                         _state = States.login;
                         _logout();
                       });
-                    }),
-                ListTile(
+                    },
+                  ),
+                  ListTile(
                     title: const Text('Change server IP'),
                     onTap: () {
                       setState(() {
                         socket.disconnect();
                         _state = States.ipSettings;
                       });
-                    }),
-                ListTile(
+                    },
+                  ),
+                  ListTile(
                     title: const Text('See Users'),
-                    onTap: () {
-                      setState(() {
-                        _state = States.allUsers;
-                      });
-                    }),
-                ListTile(
-                    title: const Text('Delete all Messages'),
-                    onTap: () {
-                      setState(() {
-                        _state = States.menu;
-                      });
-
-                      if (mounted) {
-                        _messagesFile!.delete();
-                      }
-                    })
+                    onTap: () => setState(() => _state = States.allUsers),
+                  ),
+                ]
               ],
             ),
           ),
@@ -598,9 +593,7 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         }
       }
-    } else {
-      
-    }
+    } else {}
     return prev;
   }
 
@@ -649,7 +642,8 @@ class UserAvatar extends StatelessWidget {
           backgroundImage: imageUrl != null && imageUrl!.startsWith('http')
               ? NetworkImage(imageUrl!)
               : const Icon(Icons.person, size: 30) as ImageProvider,
-          onBackgroundImageError: (_, __) => const Icon(Icons.person, size: 30) as ImageProvider, 
+          onBackgroundImageError: (_, __) =>
+              const Icon(Icons.person, size: 30) as ImageProvider,
         ));
   }
 }
