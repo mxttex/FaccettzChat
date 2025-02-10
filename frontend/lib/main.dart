@@ -15,7 +15,7 @@ import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import  'json_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -64,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic otherUserId;
   dynamic dynMessages;
   TextEditingController? _ipChecker;
-  String ip = "192.168.1.24";
+  String ip = "192.168.58.83";
   String? currentRoom;
   List<dynamic> users = [];
 
