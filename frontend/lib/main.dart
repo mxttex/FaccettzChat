@@ -15,7 +15,8 @@ import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import  'json_manager.dart';
+import 'json_manager.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -64,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic otherUserId;
   dynamic dynMessages;
   TextEditingController? _ipChecker;
-  String ip = "192.168.58.83";
+  String ip = "192.168.0.124";
   String? currentRoom;
   List<dynamic> users = [];
   late types.User aiuser;
@@ -74,7 +75,6 @@ class _MyHomePageState extends State<MyHomePage> {
       "transports": ['websocket']
     });
   }
-  
 
   void defineMessage() {
     socket.on('message', (data) {
@@ -96,17 +96,9 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     socket = connectToServer();
-    _loggati();
+
     _loadFile();
-    if((_messages.last as types.TextMessage).text != "Hey, chatta con Gemini"){
-      final mess =  types.TextMessage(author: aiuser, id: const Uuid().v4(),
-        text: "Hey, chatta con Gemini",
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        roomId: aiuser.id);
-      setState(() {
-        addMessage(mess, false);
-      });
-    }
+
     socket.on('connect', (_) {
       setState(() {});
     });
@@ -130,10 +122,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     socket.on('ai-answer', (data) {
-      final aianswer = types.TextMessage(author: aiuser, id: const Uuid().v4(),
-        text: data,
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        roomId: aiuser.id);
+      final aianswer = types.TextMessage(
+          author: aiuser,
+          id: const Uuid().v4(),
+          text: data,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          roomId: aiuser.id);
       setState(() {
         addMessage(aianswer, false);
       });
@@ -166,10 +160,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 imageUrl: user.photoURL);
             socket.emit("join-my-room", _user.id);
             aiuser = types.User(
-              id: "AI${_user.id}",
-              firstName: "Gemini AI",
-              imageUrl: 'https://cdn.mos.cms.futurecdn.net/CWkqBjQwgmSW9hT6fCrVL.jpg'
-            );
+                id: "AI${_user.id}",
+                //id: "gemini",
+                firstName: "Gemini AI",
+                imageUrl:
+                    'https://cdn.mos.cms.futurecdn.net/CWkqBjQwgmSW9hT6fCrVL.jpg');
             _state = States.menu;
           });
         }
@@ -201,10 +196,33 @@ class _MyHomePageState extends State<MyHomePage> {
     _path = await _getFilePath();
     _messagesFile = File(_path);
     final exists = await _messagesFile!.exists();
+    await _loggati();
     if (exists) {
       loadMessages();
+      if (_messages.isEmpty ||
+          (_messages.last as types.TextMessage).text !=
+              "Hey, chatta con Gemini") {
+        final mess = types.TextMessage(
+            author: aiuser,
+            id: const Uuid().v4(),
+            text: "Hey, chatta con Gemini",
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            roomId: aiuser.id);
+        setState(() {
+          addMessage(mess, false);
+        });
+      }
     } else {
       _messagesFile!.create();
+        final mess = types.TextMessage(
+            author: aiuser,
+            id: const Uuid().v4(),
+            text: "Hey, chatta con Gemini",
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            roomId: aiuser.id);
+        setState(() {
+          addMessage(mess, false);
+        });
     }
   }
 
@@ -452,6 +470,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() {
                         _state = States.allUsers;
                       });
+                    }),
+                ListTile(
+                    title: const Text('Delete all Messages'),
+                    onTap: () {
+                      setState(() {
+                        _state = States.menu;
+                      });
+
+                      if (mounted) {
+                        _messagesFile!.delete();
+                      }
                     })
               ],
             ),
@@ -489,7 +518,14 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    if (mode) _sendMessage(message);
+    if (mode) {
+      if (otherUserId == aiuser.id) {
+        socket.emit("ask-ai", message);
+      } else {
+        _sendMessage(message);
+      }
+    }
+    ;
     await _fileWriter();
   }
 
