@@ -16,7 +16,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const IP = process.env.IP || "0.0.0.0";
 const AI = new GoogleGenerativeAI(variables.API_KEY)
-const model = AI.getGenerativeModel({model: "gemini-1.5-flash"})
+const model = AI.getGenerativeModel({model: "gemini-2.0-flash"})
 
 const listAllUsers = async (nextPageToken) => {
   try {
