@@ -198,7 +198,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final exists = await _messagesFile!.exists();
     await _loggati();
     if (exists) {
-      loadMessages();
+      await loadMessages();
       if (_messages.isEmpty ||
           (_messages.last as types.TextMessage).text !=
               "Hey, chatta con Gemini") {
@@ -540,7 +540,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await _messagesFile!.writeAsString(stringToEncode);
   }
 
-  void loadMessages() async {
+  Future<void> loadMessages() async {
     final response = await _messagesFile!.readAsString();
     final messages = (jsonDecode(response) as List)
         .map((e) => types.Message.fromJson(e as Map<String, dynamic>))
