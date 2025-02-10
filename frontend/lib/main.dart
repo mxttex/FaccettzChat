@@ -198,19 +198,6 @@ class _MyHomePageState extends State<MyHomePage> {
     await _loggati();
     if (exists) {
       await loadMessages();
-      if (_messages.isEmpty ||
-          (_messages.last as types.TextMessage).text !=
-              "Hey, chatta con Gemini") {
-        final mess = types.TextMessage(
-            author: aiuser,
-            id: const Uuid().v4(),
-            text: "Hey, chatta con Gemini",
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            roomId: aiuser.id);
-        setState(() {
-          addMessage(mess, false);
-        });
-      }
     } else {
       _messagesFile!.create();
       final mess = types.TextMessage(
@@ -455,8 +442,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 if (_user != null) ...[
                   ListTile(
-                    title: const Text('Back to Menu'),
-                    onTap: () => setState(() => _state = States.menu),
+                    title: const Text('Elimina tutti i messaggi'),
+                    onTap: () => setState(() {
+                      if (mounted) {
+                        _messagesFile!.delete();}
+                        _messages = [];
+                         _loadFile();
+                      _state = States.menu;}),
                   ),
                   ListTile(
                     title: const Text('Logout'),
@@ -468,7 +460,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     },
                   ),
                   ListTile(
-                    title: const Text('Change server IP'),
+                    title: const Text('Impostazioni'),
                     onTap: () {
                       setState(() {
                         socket.disconnect();
@@ -477,7 +469,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     },
                   ),
                   ListTile(
-                    title: const Text('See Users'),
+                    title: const Text('Vedi tutti gli utenti'),
                     onTap: () => setState(() => _state = States.allUsers),
                   ),
                 ]
