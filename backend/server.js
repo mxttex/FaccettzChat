@@ -53,12 +53,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-room", (room, host) => {
-    if (currentRoom != "") {
-      socket.leave(currentRoom);
-    }
-    socket.join(room);
-    console.log(`${host} si è connesso alla stanza ${room}.`);
-    currentRoom = room;
+    // if (currentRoom != "") {
+    //   socket.leave(currentRoom);
+    // }
+    // socket.join(room);
+    // console.log(`${host} si è connesso alla stanza ${room}.`);
+    // currentRoom = room;
   });
 
   socket.on("join-my-room", (room) => {
@@ -75,6 +75,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendMessage", (data) => {
+    console.log(data.roomId)
     io.to(data.roomId).emit("message", data);
   });
 

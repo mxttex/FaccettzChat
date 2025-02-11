@@ -297,8 +297,8 @@ class _MyHomePageState extends State<MyHomePage> {
         dynMessages = _loadMessagesWithIds();
         if (currentRoom == null || currentRoom != otherUserId) {
           currentRoom = otherUserId;
-          socket
-              .emit("join-room", [currentRoom ?? "broadcast", _user.firstName]);
+          // socket
+          //     .emit("join-room", [currentRoom ?? "broadcast", _user.firstName]);
         }
         return Chat(
           messages: dynMessages,
@@ -447,7 +447,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       if (mounted) {
                         _messagesFile!.delete();}
                         _messages = [];
-                         _loadFile();
+                        _loadFile();
                       _state = States.menu;}),
                   ),
                   ListTile(
