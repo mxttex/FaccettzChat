@@ -54,7 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<types.Message> _messages = [];
   dynamic _path;
   dynamic _user;
-  File? _messagesFile = null;
+  File? _messagesFile;
   dynamic _preview = [];
   States _state = States.login;
   bool logged = false;
@@ -64,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic otherUserId;
   dynamic dynMessages;
   TextEditingController? _ipChecker;
-  String ip = "192.168.0.124";
+  String ip = "192.168.31.83";
   String? currentRoom;
   List<dynamic> users = [];
   late types.User aiuser;
